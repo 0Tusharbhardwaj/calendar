@@ -12,11 +12,9 @@ import {
   CheckSquare,
   ChevronDown,
   LogOut,
-  User,
   ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { isSupabaseConfigured } from '../services/supabaseClient';
 
 export type ActiveTab = 'dashboard' | 'calendar' | 'tasks' | 'approvals' | 'teams' | 'activity';
 
@@ -39,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenNotifications,
   onOpenLogin,
 }) => {
-  const { currentUser, users, switchUser, logout, unreadCount, tasks } = useApp();
+  const { currentUser, logout, unreadCount, tasks } = useApp();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
 
@@ -221,105 +219,56 @@ export const Navigation: React.FC<NavigationProps> = ({
               )}
             </div>
 
-            {/* User Profile / Admin Switcher */}
+            {/* User Profile */}
             <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-1.5 p-1 rounded-xl hover:bg-[#FAF1E6] transition-all"
-              >
-                <img
-                  src={currentUser?.avatar_url}
-                  alt={currentUser?.full_name}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-[#E8D0B7] bg-[#FAE6CE]"
-                />
-                <span className="hidden lg:block text-xs font-bold text-[#2A1812] max-w-[100px] truncate">
-                  {currentUser?.full_name?.split(' ')[0]}
-                </span>
-                <ChevronDown className="w-3 h-3 text-[#7A6359] hidden sm:block opacity-70" />
-              </button>
+              {currentUser ? (
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-1.5 p-1 rounded-xl hover:bg-[#FAF1E6] transition-all cursor-pointer"
+                >
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser.full_name}
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-[#E8D0B7] bg-[#FAE6CE]"
+                  />
+                  <span className="hidden lg:block text-xs font-bold text-[#2A1812] max-w-[100px] truncate">
+                    {currentUser.full_name.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-[#7A6359] hidden sm:block opacity-70" />
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenLogin}
+                  className="bg-[#2A1812] hover:bg-black text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all cursor-pointer"
+                >
+                  Sign In
+                </button>
+              )}
 
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#FFFBF7] border border-[#E8D0B7] rounded-2xl shadow-xl py-2 z-50 text-xs animate-scaleUp">
-                  {/* Current Active Account Card */}
+              {userMenuOpen && currentUser && (
+                <div className="absolute right-0 mt-2 w-60 bg-[#FFFBF7] border border-[#E8D0B7] rounded-2xl shadow-xl py-2 z-50 text-xs animate-scaleUp">
+                  {/* Active Account Details */}
                   <div className="px-4 py-2.5 border-b border-[#E8D0B7]/60">
                     <p className="font-extrabold text-[#2A1812] text-sm leading-tight">
-                      {currentUser?.full_name}
+                      {currentUser.full_name}
                     </p>
                     <p className="text-[#7A6359] text-[11px] font-medium mt-0.5">
-                      @{currentUser?.username} • {currentUser?.designation}
+                      @{currentUser.username} • {currentUser.designation}
                     </p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#A63500]">
-                        <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
-                        Administrator
-                      </span>
-                      {isSupabaseConfigured ? (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Supabase Live
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#7A6359] bg-[#FAF1E6] border border-[#E8D0B7] px-1.5 py-0.5 rounded-full" title="Connect Supabase for live multi-device sync">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          Local Mode
-                        </span>
-                      )}
-                    </div>
+                    <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#A63500]">
+                      <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
+                      {currentUser.role === 'admin' ? 'Administrator' : 'Team Member'}
+                    </span>
                   </div>
 
-                  {/* Switch Between Tushar & Bhoomika */}
-                  <div className="px-3 py-2 border-b border-[#E8D0B7]/60">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[#7A6359] mb-1.5 px-1">
-                      Active Workspace Admins
-                    </p>
-                    <div className="space-y-1">
-                      {users.map((u) => (
-                        <button
-                          key={u.id}
-                          onClick={() => {
-                            switchUser(u.id);
-                            setUserMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-colors ${
-                            u.id === currentUser?.id
-                              ? 'bg-[#FAE6CE] font-bold text-[#2A1812]'
-                              : 'hover:bg-[#FAF1E6] text-[#4A352D]'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <img
-                              src={u.avatar_url}
-                              alt=""
-                              className="w-5 h-5 rounded-full object-cover"
-                            />
-                            <span className="truncate text-xs font-extrabold">{u.full_name}</span>
-                          </div>
-                          <span className="text-[10px] text-[#A63500] font-black uppercase">
-                            Admin
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Account options */}
-                  <div className="pt-1 px-1">
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        onOpenLogin();
-                      }}
-                      className="w-full px-3 py-2 text-left font-bold text-[#4A352D] hover:bg-[#FAF1E6] rounded-xl flex items-center gap-2"
-                    >
-                      <User className="w-3.5 h-3.5 text-[#FC9631]" />
-                      <span>Switch / Log In</span>
-                    </button>
+                  {/* Sign Out Option */}
+                  <div className="pt-1.5 px-1.5">
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
                         logout();
                       }}
-                      className="w-full px-3 py-2 text-left font-bold text-red-700 hover:bg-red-50 rounded-xl flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left font-bold text-red-700 hover:bg-red-50 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>

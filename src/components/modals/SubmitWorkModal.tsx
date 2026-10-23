@@ -139,32 +139,6 @@ export const SubmitWorkModal: React.FC<SubmitWorkModalProps> = ({
               placeholder="https://figma.com/..., https://notion.so/..., etc."
               className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs text-[#2A1812] placeholder-[#7A6359] focus:outline-none focus:border-[#FF5601] font-semibold"
             />
-
-            {/* Quick Demo Presets */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <span className="text-[10px] text-[#7A6359] font-bold">Quick Presets:</span>
-              <button
-                type="button"
-                onClick={() => setQuickUrl('https://figma.com/file/rebrand-3d-icons-final')}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FE75B9]/20 text-[#A91F62] hover:bg-[#FE75B9]/30"
-              >
-                Figma File
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuickUrl('https://frame.io/v/reel-rough-cut-v2')}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF5601]/20 text-[#A63500] hover:bg-[#FF5601]/30"
-              >
-                Frame.io Cut
-              </button>
-              <button
-                type="button"
-                onClick={() => setQuickUrl('https://notion.so/teamflow/q4-showcase-draft')}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FC9631]/20 text-[#B85B00] hover:bg-[#FC9631]/30"
-              >
-                Notion Post
-              </button>
-            </div>
           </div>
 
           {/* Submission Notes & Comments */}

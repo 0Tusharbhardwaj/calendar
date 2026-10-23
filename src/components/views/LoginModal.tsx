@@ -1,24 +1,19 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Lock,
-  User,
-  Flame,
-  AlertCircle,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  RefreshCw,
-} from 'lucide-react';
+import { X, Lock, User, Flame, AlertCircle, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface LoginModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  canClose?: boolean;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
-  const { login, resetDatabase, users } = useApp();
+export const LoginModal: React.FC<LoginModalProps> = ({
+  isOpen,
+  onClose,
+  canClose = true,
+}) => {
+  const { login } = useApp();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -36,20 +31,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(false);
 
     if (res.success) {
-      onClose();
+      if (onClose) onClose();
     } else {
       setError(res.error || 'Failed to authenticate.');
-    }
-  };
-
-  const handleQuickLogin = async (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-    setIsLoading(true);
-    const res = await login(user, pass);
-    setIsLoading(false);
-    if (res.success) {
-      onClose();
     }
   };
 
@@ -61,17 +45,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       >
         {/* Brand Header */}
         <div className="p-6 bg-gradient-to-r from-[#FAE6CE] via-[#FFF1E4] to-[#FDF7F0] border-b border-[#E8D0B7] text-center relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-[#7A6359] hover:bg-[#FAE6CE] hover:text-[#2A1812]"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {canClose && onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-[#7A6359] hover:bg-[#FAE6CE] hover:text-[#2A1812] transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
 
-          <div className="w-12 h-12 rounded-full bg-[#FF5601] flex items-center justify-center text-white mx-auto shadow-md mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF5601] to-[#FC9631] flex items-center justify-center text-white mx-auto shadow-md mb-2">
             <Flame className="w-6 h-6 fill-white" />
           </div>
-          <h2 className="text-xl font-black text-[#2A1812]">TeamFlow Studio Ops</h2>
+          <h2 className="text-xl font-black text-[#2A1812]">TeamFlow Workspace</h2>
           <p className="text-xs text-[#7A6359] mt-0.5">
             Internal Operations, Team Management & Calendar
           </p>
@@ -96,13 +82,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
                     setError('');
                   }}
-                  placeholder="e.g. tushar or bhoomika"
-                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-3.5 py-2 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                  placeholder="Enter your username"
+                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
                 />
               </div>
             </div>
@@ -122,7 +109,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     setError('');
                   }}
                   placeholder="••••••••"
-                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-3.5 py-2 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
                 />
               </div>
             </div>
@@ -130,64 +117,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 rounded-full text-xs font-black text-white bg-[#FF5601] hover:bg-[#E04800] shadow-[0_4px_14px_-2px_rgba(255,86,1,0.4)] transition-all hover:scale-[1.01] active:scale-[0.98] flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-[#FF5601] to-[#E04800] hover:from-[#E04800] hover:to-[#C83E00] shadow-[0_4px_14px_-2px_rgba(255,86,1,0.35)] transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <span>{isLoading ? 'Signing in...' : 'Sign In to Platform'}</span>
+              <span>{isLoading ? 'Signing in...' : 'Sign In to Workspace'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Fast Demo One-Click Accounts */}
-          <div className="pt-3 border-t border-[#E8D0B7]/60 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#7A6359]">
-                Instant Demo Access
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Reset database back to clean demonstration seeds?')) {
-                    resetDatabase();
-                  }
-                }}
-                className="text-[10px] text-[#A63500] hover:underline flex items-center gap-1 font-bold"
-                title="Reset local database to initial demonstration dataset"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Reset Demo Data</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('tushar', 'admin123')}
-                className="p-3 rounded-2xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Tushar Bhardwaj</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FF5601] text-white">
-                    Admin
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#7A6359]">@tushar • Founder</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('bhoomika', 'admin123')}
-                className="p-3 rounded-2xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Bhoomika Chawla</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FF5601] text-white">
-                    Admin
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#7A6359]">@bhoomika • Co-Founder</span>
-              </button>
-            </div>
-          </div>
+          <p className="text-[11px] text-center text-[#7A6359] pt-2 border-t border-[#E8D0B7]/60">
+            Account access and credentials are managed by workspace administrators.
+          </p>
         </div>
       </div>
     </div>

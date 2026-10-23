@@ -57,6 +57,14 @@ const MainLayout: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#FDF7F0] flex items-center justify-center p-4">
+        <LoginModal isOpen={true} canClose={false} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDF7F0] text-[#2A1812] flex flex-col selection:bg-[#FC9631]/30 pb-24 lg:pb-12">
       {/* 1. Floating Top Navigation Capsule */}
