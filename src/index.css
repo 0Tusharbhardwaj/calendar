@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FAE6CE;
+  --color-cream-light: #FDF7F0;
+  --color-cream-card: #FAF1E6;
+  --color-cocoa: #2A1812;
+  --color-cocoa-light: #4A352D;
+  --color-cocoa-muted: #7A6359;
+  --color-sunset: #FC9631;
+  --color-hotpink: #FE75B9;
+  --color-flame: #FF5601;
+  --color-flame-hover: #E04800;
+  --color-marigold: #F9CC61;
+  --color-raspberry: #E6455E;
+  --color-border-warm: #E8D0B7;
+  --color-border-warm-dark: #D4B89B;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --radius-pill: 9999px;
+  --radius-card: 1.25rem;
+  --radius-card-lg: 1.75rem;
+
+  --shadow-warm-sm: 0 2px 6px -1px rgba(42, 24, 18, 0.05);
+  --shadow-warm-md: 0 8px 24px -4px rgba(42, 24, 18, 0.08), 0 2px 6px -1px rgba(42, 24, 18, 0.04);
+  --shadow-warm-lg: 0 16px 36px -6px rgba(42, 24, 18, 0.12), 0 4px 12px -2px rgba(42, 24, 18, 0.06);
+  --shadow-flame-glow: 0 6px 20px -2px rgba(255, 86, 1, 0.35);
+  --shadow-pink-glow: 0 6px 20px -2px rgba(254, 117, 185, 0.3);
+}
+
+/* Custom warm styling */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-cream-light);
+  color: var(--color-cocoa);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom Smooth Warm Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8EFE4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #DFC5AE;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #CBAA90;
+}
+
+/* Subtle card lift on hover */
+.card-hover {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-warm-md);
+  border-color: var(--color-border-warm-dark);
+}
+
+/* Glassmorphism with warm backdrop */
+.warm-glass {
+  background: rgba(253, 247, 240, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.warm-card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
