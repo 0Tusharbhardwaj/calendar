@@ -101,7 +101,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     setUsername(e.target.value);
                     setError('');
                   }}
-                  placeholder="e.g. admin or marcus"
+                  placeholder="e.g. tushar or bhoomika"
                   className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-3.5 py-2 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
                 />
               </div>
@@ -161,58 +161,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickLogin('admin', 'admin123')}
-                className="p-2.5 rounded-xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
+                onClick={() => handleQuickLogin('tushar', 'admin123')}
+                className="p-3 rounded-2xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Maya Chen</span>
+                  <span className="font-extrabold text-xs text-[#2A1812]">Tushar Bhardwaj</span>
                   <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FF5601] text-white">
                     Admin
                   </span>
                 </div>
-                <span className="text-[10px] text-[#7A6359]">@admin • Full access</span>
+                <span className="text-[10px] text-[#7A6359]">@tushar • Founder</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin('marcus', 'member123')}
-                className="p-2.5 rounded-xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
+                onClick={() => handleQuickLogin('bhoomika', 'admin123')}
+                className="p-3 rounded-2xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Marcus T.</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FC9631] text-white">
-                    Writer
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#7A6359]">@marcus • Member</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('liam', 'member123')}
-                className="p-2.5 rounded-xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Liam K.</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FE75B9] text-[#2A1812]">
-                    Design
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#7A6359]">@liam • Member</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('chloe', 'member123')}
-                className="p-2.5 rounded-xl border border-[#E8D0B7] bg-[#FAE6CE]/30 hover:bg-[#FAE6CE] text-left transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-extrabold text-xs text-[#2A1812]">Chloe S.</span>
+                  <span className="font-extrabold text-xs text-[#2A1812]">Bhoomika Chawla</span>
                   <span className="text-[9px] font-black uppercase px-1.5 rounded bg-[#FF5601] text-white">
-                    Video
+                    Admin
                   </span>
                 </div>
-                <span className="text-[10px] text-[#7A6359]">@chloe • Member</span>
+                <span className="text-[10px] text-[#7A6359]">@bhoomika • Co-Founder</span>
               </button>
             </div>
           </div>

@@ -32,10 +32,10 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'teamflow_notifications',
   ACTIVITY_LOGS: 'teamflow_activity_logs',
   SESSION: 'teamflow_session',
-  INITIALIZED: 'teamflow_db_initialized_v2',
+  INITIALIZED: 'teamflow_db_initialized_v4_production_clean',
 };
 
-// Default seed data with realistic avatars, teams, tasks, submissions, calendar events
+// Default departments (The 4 core functional teams)
 export const SEED_TEAMS: Team[] = [
   {
     id: 'team-writing',
@@ -45,7 +45,7 @@ export const SEED_TEAMS: Team[] = [
     badge_bg: 'rgba(252, 150, 49, 0.15)',
     badge_text: '#B85B00',
     is_active: true,
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+    created_at: new Date().toISOString(),
   },
   {
     id: 'team-graphics',
@@ -55,7 +55,7 @@ export const SEED_TEAMS: Team[] = [
     badge_bg: 'rgba(254, 117, 185, 0.15)',
     badge_text: '#A91F62',
     is_active: true,
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+    created_at: new Date().toISOString(),
   },
   {
     id: 'team-video',
@@ -65,7 +65,7 @@ export const SEED_TEAMS: Team[] = [
     badge_bg: 'rgba(255, 86, 1, 0.15)',
     badge_text: '#A63500',
     is_active: true,
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+    created_at: new Date().toISOString(),
   },
   {
     id: 'team-others',
@@ -75,108 +75,40 @@ export const SEED_TEAMS: Team[] = [
     badge_bg: 'rgba(249, 204, 97, 0.25)',
     badge_text: '#7A5200',
     is_active: true,
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+    created_at: new Date().toISOString(),
   },
 ];
 
 export async function createSeedUsers(): Promise<UserProfile[]> {
-  // Passwords:
-  // admin: "admin123"
-  // members: "member123"
+  // Passwords default to "admin123" for both Tushar and Bhoomika
   const adminHash = await hashPassword('admin123');
-  const memberHash = await hashPassword('member123');
 
   return [
     {
-      id: 'usr-admin-1',
-      full_name: 'Maya Chen',
-      username: 'admin',
+      id: 'usr-admin-tushar',
+      full_name: 'Tushar Bhardwaj',
+      username: 'tushar',
       password_hash: adminHash,
       role: 'admin',
       team_id: 'team-others',
-      designation: 'Head of Operations & Production',
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      designation: 'Founder & Lead Administrator',
+      avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf',
       is_active: true,
-      created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
-      id: 'usr-writer-1',
-      full_name: 'Marcus Thorne',
-      username: 'marcus',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-writing',
-      designation: 'Senior Editorial Writer',
-      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      id: 'usr-admin-bhoomika',
+      full_name: 'Bhoomika Chawla',
+      username: 'bhoomika',
+      password_hash: adminHash,
+      role: 'admin',
+      team_id: 'team-others',
+      designation: 'Co-Founder & Lead Administrator',
+      avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc',
       is_active: true,
-      created_at: new Date(Date.now() - 45 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 45 * 86400000).toISOString(),
-    },
-    {
-      id: 'usr-writer-2',
-      full_name: 'Sophia Patel',
-      username: 'sophia',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-writing',
-      designation: 'Content & Copy Specialist',
-      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      is_active: true,
-      created_at: new Date(Date.now() - 40 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 40 * 86400000).toISOString(),
-    },
-    {
-      id: 'usr-designer-1',
-      full_name: 'Liam Keller',
-      username: 'liam',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-graphics',
-      designation: 'Lead Visual Designer',
-      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      is_active: true,
-      created_at: new Date(Date.now() - 40 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 40 * 86400000).toISOString(),
-    },
-    {
-      id: 'usr-designer-2',
-      full_name: 'Aria Rossi',
-      username: 'aria',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-graphics',
-      designation: 'UI & Motion Illustrator',
-      avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-      is_active: true,
-      created_at: new Date(Date.now() - 35 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 35 * 86400000).toISOString(),
-    },
-    {
-      id: 'usr-video-1',
-      full_name: 'Chloe Simmons',
-      username: 'chloe',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-video',
-      designation: 'Video Producer & Director',
-      avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-      is_active: true,
-      created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-    },
-    {
-      id: 'usr-video-2',
-      full_name: 'Alex Vance',
-      username: 'alex',
-      password_hash: memberHash,
-      role: 'member',
-      team_id: 'team-video',
-      designation: 'Senior Video Editor & Colorist',
-      avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-      is_active: true,
-      created_at: new Date(Date.now() - 25 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 25 * 86400000).toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ];
 }
@@ -187,255 +119,31 @@ export function createSeedTasks(): {
   submissions: Submission[];
   reviews: SubmissionReview[];
 } {
-  const now = new Date();
-  const formatOffset = (days: number) => {
-    const d = new Date(now.getTime() + days * 86400000);
-    return d.toISOString().split('T')[0];
+  // Fresh clean slate - zero dummy tasks
+  return {
+    tasks: [],
+    assignments: [],
+    submissions: [],
+    reviews: [],
   };
-
-  const tasks: Task[] = [
-    {
-      id: 'tsk-101',
-      title: 'Q4 Product Showcase Article & Case Study',
-      description: 'Deep dive editorial covering the new workflow automation engine. Highlight customer quotes and performance benchmarks.',
-      team_id: 'team-writing',
-      created_by: 'usr-admin-1',
-      start_date: formatOffset(-5),
-      deadline: formatOffset(1),
-      priority: 'high',
-      assignment_type: 'individual',
-      reference_urls: ['https://notion.so/editorial/guidelines', 'https://figma.com/file/assets-q4'],
-      internal_instructions: 'Keep voice warm yet authoritative. Target 1,400 words.',
-      created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-    {
-      id: 'tsk-102',
-      title: 'Brand Refresh: 3D Icons & Asset Library',
-      description: 'Render warm tactile 3D icons for core product categories using brand clay/terracotta palette.',
-      team_id: 'team-graphics',
-      created_by: 'usr-admin-1',
-      start_date: formatOffset(-4),
-      deadline: formatOffset(2),
-      priority: 'urgent',
-      assignment_type: 'multiple',
-      reference_urls: ['https://figma.com/file/brand-rebrand-flow'],
-      internal_instructions: 'Export in @2x PNG and SVG with transparent backgrounds.',
-      created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-    {
-      id: 'tsk-103',
-      title: 'Feature Walkthrough Reel & Cutdowns',
-      description: '60-second high-energy product reel with dynamic typography, audio beats, and quick UI zooms.',
-      team_id: 'team-video',
-      created_by: 'usr-admin-1',
-      start_date: formatOffset(-6),
-      deadline: formatOffset(-1), // overdue deadline
-      priority: 'high',
-      assignment_type: 'individual',
-      reference_urls: ['https://frame.io/v/cut2-final'],
-      internal_instructions: 'Ensure vertical 9:16 aspect ratio with safe zone for Instagram / TikTok UI.',
-      created_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      id: 'tsk-104',
-      title: 'Instagram Carousel: Team Operations Playbook',
-      description: '8-slide educational carousel highlighting 5 mistakes teams make in content scheduling.',
-      team_id: 'team-graphics',
-      created_by: 'usr-admin-1',
-      start_date: formatOffset(-2),
-      deadline: formatOffset(4),
-      priority: 'medium',
-      assignment_type: 'individual',
-      reference_urls: ['https://notion.so/social/carousel-script'],
-      internal_instructions: 'Use warm cream backdrop with Flame and Hot Pink emphasis pills.',
-      created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    {
-      id: 'tsk-105',
-      title: 'Bi-Weekly Team Operations Sync & Retrospective',
-      description: 'Quarterly review of team velocity, completed content distribution, and upcoming milestones.',
-      team_id: 'team-others',
-      created_by: 'usr-admin-1',
-      start_date: formatOffset(0),
-      deadline: formatOffset(5),
-      priority: 'low',
-      assignment_type: 'team',
-      reference_urls: ['https://teamflow.internal/retro-agenda'],
-      internal_instructions: 'All members compile their top 3 wins and 1 blocker before Thursday.',
-      created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-  ];
-
-  const assignments: TaskAssignment[] = [
-    // tsk-101 assigned to Marcus (Submitted for review!)
-    {
-      id: 'asg-101-marcus',
-      task_id: 'tsk-101',
-      user_id: 'usr-writer-1',
-      status: 'submitted',
-      assigned_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-    // tsk-102 assigned to Liam (Submitted for review) and Aria (In Progress)
-    {
-      id: 'asg-102-liam',
-      task_id: 'tsk-102',
-      user_id: 'usr-designer-1',
-      status: 'submitted',
-      assigned_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    {
-      id: 'asg-102-aria',
-      task_id: 'tsk-102',
-      user_id: 'usr-designer-2',
-      status: 'in_progress',
-      assigned_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    // tsk-103 assigned to Chloe (Revision Required, awaiting resubmission)
-    {
-      id: 'asg-103-chloe',
-      task_id: 'tsk-103',
-      user_id: 'usr-video-1',
-      status: 'revision_required',
-      assigned_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-    },
-    // tsk-104 assigned to Aria (In progress)
-    {
-      id: 'asg-104-aria',
-      task_id: 'tsk-104',
-      user_id: 'usr-designer-2',
-      status: 'in_progress',
-      assigned_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    },
-    // tsk-105 assigned to team-others (Maya)
-    {
-      id: 'asg-105-maya',
-      task_id: 'tsk-105',
-      user_id: 'usr-admin-1',
-      status: 'assigned',
-      assigned_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    },
-  ];
-
-  const submissions: Submission[] = [
-    // Marcus submission for tsk-101
-    {
-      id: 'sub-101-1',
-      task_assignment_id: 'asg-101-marcus',
-      task_id: 'tsk-101',
-      submitted_by: 'usr-writer-1',
-      submission_url: 'https://notion.so/teamflow/q4-showcase-draft-v1',
-      comments: 'Full article written with executive summary, customer highlights, and metrics. Ready for editorial review.',
-      supporting_links: ['https://drive.google.com/folder/assets'],
-      version_number: 1,
-      submitted_at: new Date(Date.now() - 4 * 3600000).toISOString(),
-    },
-    // Liam submission for tsk-102
-    {
-      id: 'sub-102-1',
-      task_assignment_id: 'asg-102-liam',
-      task_id: 'tsk-102',
-      submitted_by: 'usr-designer-1',
-      submission_url: 'https://figma.com/file/rebrand-3d-icons-final',
-      comments: 'All 8 core icon assets rendered in Blender with warm clay shader and exported to Figma.',
-      supporting_links: ['https://dropbox.com/sh/3d-renders'],
-      version_number: 1,
-      submitted_at: new Date(Date.now() - 6 * 3600000).toISOString(),
-    },
-    // Chloe submission for tsk-103 (has a review requesting changes)
-    {
-      id: 'sub-103-1',
-      task_assignment_id: 'asg-103-chloe',
-      task_id: 'tsk-103',
-      submitted_by: 'usr-video-1',
-      submission_url: 'https://frame.io/v/reel-rough-cut-v1',
-      comments: 'Initial 60s edit with audio sync. Please check intro hook pacing.',
-      supporting_links: [],
-      version_number: 1,
-      submitted_at: new Date(Date.now() - 24 * 3600000).toISOString(),
-    },
-  ];
-
-  const reviews: SubmissionReview[] = [
-    {
-      id: 'rev-103-1',
-      submission_id: 'sub-103-1',
-      task_assignment_id: 'asg-103-chloe',
-      reviewed_by: 'usr-admin-1',
-      decision: 'changes_requested',
-      feedback: 'The intro hook at 0:04 is slightly too slow. Please trim the title slide to 1.5 seconds and boost the voiceover gain by +2dB.',
-      reviewed_at: new Date(Date.now() - 12 * 3600000).toISOString(),
-    },
-  ];
-
-  return { tasks, assignments, submissions, reviews };
 }
 
 export function createSeedCalendarEvents(): CalendarEvent[] {
-  const now = new Date();
-  const formatOffset = (days: number) => {
-    const d = new Date(now.getTime() + days * 86400000);
-    return d.toISOString().split('T')[0];
-  };
+  const todayStr = new Date().toISOString().split('T')[0];
 
   return [
     {
-      id: 'evt-201',
-      title: 'Press Release Embargo Lift & Launch Blast',
-      description: 'Official launch of TeamFlow 2.0 announcement across all digital channels.',
-      date: formatOffset(0), // Today
-      start_time: '12:00',
-      end_time: '13:00',
-      event_type: 'milestone',
-      team_id: 'team-writing',
-      reference_url: 'https://news.teamflow.internal/press-kit',
-      created_by: 'usr-admin-1',
-      created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    },
-    {
-      id: 'evt-202',
-      title: 'Content Planning & Editorial Board Sync',
-      description: 'Review monthly story queue, guest author pitches, and upcoming campaign assets.',
-      date: formatOffset(2),
+      id: 'evt-welcome',
+      title: 'TeamFlow Platform Launch',
+      description: 'Official launch of the TeamFlow internal team operations & content schedule.',
+      date: todayStr,
       start_time: '10:00',
       end_time: '11:00',
-      event_type: 'meeting',
-      team_id: 'team-writing',
-      reference_url: 'https://meet.google.com/tf-edit-sync',
-      created_by: 'usr-admin-1',
-      created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 4 * 86400000).toISOString(),
-    },
-    {
-      id: 'evt-203',
-      title: 'Festival Social Campaign Blast',
-      description: 'Coordinated rollout of holiday promos across YouTube, Instagram, and X.',
-      date: formatOffset(4),
-      start_time: '14:00',
-      end_time: '15:30',
-      event_type: 'campaign_launch',
-      team_id: 'team-graphics',
-      created_by: 'usr-admin-1',
-      created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 'evt-204',
-      title: 'Monthly Video Production Wrap',
-      description: 'Final cut export deadline for all customer testimonial segments.',
-      date: formatOffset(7),
-      start_time: '16:00',
-      end_time: '17:00',
-      event_type: 'publishing',
-      team_id: 'team-video',
-      created_by: 'usr-admin-1',
-      created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      event_type: 'milestone',
+      team_id: 'team-others',
+      created_by: 'usr-admin-tushar',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ];
 }
@@ -443,34 +151,13 @@ export function createSeedCalendarEvents(): CalendarEvent[] {
 export function createSeedNotifications(): AppNotification[] {
   return [
     {
-      id: 'notif-1',
-      user_id: 'usr-admin-1',
-      title: 'New Submission Awaiting Review',
-      message: 'Marcus Thorne submitted "Q4 Product Showcase Article & Case Study" for your approval.',
-      type: 'submission_received',
-      related_task_id: 'tsk-101',
+      id: 'notif-welcome',
+      user_id: 'all',
+      title: 'Welcome to TeamFlow!',
+      message: 'Workspace is live and configured for Tushar Bhardwaj and Bhoomika Chawla. You can now invite members and assign tasks.',
+      type: 'system',
       is_read: false,
-      created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
-    },
-    {
-      id: 'notif-2',
-      user_id: 'usr-admin-1',
-      title: 'New Submission Awaiting Review',
-      message: 'Liam Keller submitted "Brand Refresh: 3D Icons & Asset Library".',
-      type: 'submission_received',
-      related_task_id: 'tsk-102',
-      is_read: false,
-      created_at: new Date(Date.now() - 6 * 3600000).toISOString(),
-    },
-    {
-      id: 'notif-3',
-      user_id: 'usr-video-1',
-      title: 'Revision Requested on Reel',
-      message: 'Maya Chen requested revisions on "Feature Walkthrough Reel & Cutdowns": Trim intro hook to 1.5s.',
-      type: 'revision_requested',
-      related_task_id: 'tsk-103',
-      is_read: false,
-      created_at: new Date(Date.now() - 12 * 3600000).toISOString(),
+      created_at: new Date().toISOString(),
     },
   ];
 }
@@ -478,34 +165,14 @@ export function createSeedNotifications(): AppNotification[] {
 export function createSeedActivity(): ActivityLog[] {
   return [
     {
-      id: 'act-1',
-      actor_id: 'usr-writer-1',
-      actor_name: 'Marcus Thorne',
-      actor_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      action: 'submitted work URL for review on "Q4 Product Showcase Article"',
-      entity_type: 'submission',
-      entity_id: 'sub-101-1',
-      created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
-    },
-    {
-      id: 'act-2',
-      actor_id: 'usr-designer-1',
-      actor_name: 'Liam Keller',
-      actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      action: 'submitted Figma deliverables for "Brand Refresh: 3D Icons"',
-      entity_type: 'submission',
-      entity_id: 'sub-102-1',
-      created_at: new Date(Date.now() - 6 * 3600000).toISOString(),
-    },
-    {
-      id: 'act-3',
-      actor_id: 'usr-admin-1',
-      actor_name: 'Maya Chen',
-      actor_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      action: 'requested revisions on "Feature Walkthrough Reel"',
-      entity_type: 'review',
-      entity_id: 'rev-103-1',
-      created_at: new Date(Date.now() - 12 * 3600000).toISOString(),
+      id: 'act-init',
+      actor_id: 'usr-admin-tushar',
+      actor_name: 'Tushar Bhardwaj',
+      actor_avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf',
+      action: 'initialized TeamFlow production workspace',
+      entity_type: 'team',
+      entity_id: 'team-others',
+      created_at: new Date().toISOString(),
     },
   ];
 }
@@ -548,10 +215,8 @@ class TeamFlowDatabase {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
     localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(activity));
 
-    // Default active session to Maya Chen (Admin)
-    if (!localStorage.getItem(STORAGE_KEYS.SESSION)) {
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(seedUsers[0]));
-    }
+    // Default active session to Tushar Bhardwaj (Admin)
+    localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(seedUsers[0]));
 
     localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
     this.notify();
@@ -559,16 +224,27 @@ class TeamFlowDatabase {
 
   // --- Auth & Session ---
   public getCurrentUser(): UserProfile | null {
+    const users = this.getUsers();
+    if (!users || users.length === 0) return null;
+
     const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
-    if (!raw) return null;
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
+      return users[0];
+    }
     try {
       const user = JSON.parse(raw) as UserProfile;
       // Refresh with latest from USERS table
-      const users = this.getUsers();
       const fresh = users.find((u) => u.id === user.id);
-      return fresh || user;
+      if (fresh) {
+        return fresh;
+      }
+      // If cached session user no longer exists (e.g. wiped dummy user), reset to first active admin
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
+      return users[0];
     } catch {
-      return null;
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
+      return users[0];
     }
   }
 

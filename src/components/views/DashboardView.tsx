@@ -364,37 +364,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div className="space-y-2">
-                {upcomingDeadlines.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => onSelectTask(task.id)}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/50 border border-[#E8D0B7]/70 cursor-pointer transition-all"
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: task.team?.color || '#FF5601' }}
-                      />
-                      <div className="truncate">
-                        <h4 className="text-xs font-extrabold text-[#2A1812] truncate">
-                          {task.title}
-                        </h4>
-                        <span className="text-[10px] text-[#7A6359]">
-                          {task.team?.name} • {task.assignments.length} assigned
+                {upcomingDeadlines.length === 0 ? (
+                  <div className="py-8 text-center text-[#7A6359]">
+                    <Clock className="w-7 h-7 opacity-30 mx-auto mb-1.5" />
+                    <p className="text-xs font-bold text-[#2A1812]">No upcoming deadlines</p>
+                    <p className="text-[11px] mt-0.5">Your schedule is currently clear. Click "New Task" to begin.</p>
+                  </div>
+                ) : (
+                  upcomingDeadlines.map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={() => onSelectTask(task.id)}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/50 border border-[#E8D0B7]/70 cursor-pointer transition-all"
+                    >
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: task.team?.color || '#FF5601' }}
+                        />
+                        <div className="truncate">
+                          <h4 className="text-xs font-extrabold text-[#2A1812] truncate">
+                            {task.title}
+                          </h4>
+                          <span className="text-[10px] text-[#7A6359]">
+                            {task.team?.name} • {task.assignments.length} assigned
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <span className="text-xs font-black text-[#FF5601] block">
+                          {task.deadline}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase text-[#7A6359]">
+                          {task.priority}
                         </span>
                       </div>
                     </div>
-
-                    <div className="text-right flex-shrink-0 ml-2">
-                      <span className="text-xs font-black text-[#FF5601] block">
-                        {task.deadline}
-                      </span>
-                      <span className="text-[10px] font-bold uppercase text-[#7A6359]">
-                        {task.priority}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
