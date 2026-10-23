@@ -12,6 +12,7 @@ import {
   AssignmentStatus,
   ReviewDecision,
 } from '../types';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 // Simple SHA-256 hasher using Web Crypto API
 export async function hashPassword(password: string): Promise<string> {
@@ -183,6 +184,9 @@ class TeamFlowDatabase {
 
   constructor() {
     this.ensureInitialized();
+    if (isSupabaseConfigured && supabase) {
+      this.initSupabaseSync();
+    }
   }
 
   public subscribe(listener: () => void): () => void {
@@ -192,6 +196,110 @@ class TeamFlowDatabase {
 
   private notify() {
     this.listeners.forEach((fn) => fn());
+  }
+
+  // --- Supabase Realtime & Cloud Sync ---
+  private async initSupabaseSync() {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await this.pullFromSupabase();
+
+      // Listen to all PostgreSQL changes in real time
+      supabase
+        .channel('public-db-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+          this.pullFromSupabase();
+        })
+        .subscribe();
+    } catch (err) {
+      console.warn('Supabase sync init warning:', err);
+    }
+  }
+
+  public async pullFromSupabase() {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const [
+        teamsRes,
+        usersRes,
+        tasksRes,
+        assignmentsRes,
+        submissionsRes,
+        reviewsRes,
+        eventsRes,
+        notificationsRes,
+        activityRes,
+      ] = await Promise.all([
+        supabase.from('teams').select('*'),
+        supabase.from('users').select('*'),
+        supabase.from('tasks').select('*'),
+        supabase.from('task_assignments').select('*'),
+        supabase.from('submissions').select('*'),
+        supabase.from('submission_reviews').select('*'),
+        supabase.from('calendar_events').select('*'),
+        supabase.from('app_notifications').select('*'),
+        supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(50),
+      ]);
+
+      if (teamsRes.data && teamsRes.data.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teamsRes.data));
+      }
+      if (usersRes.data && usersRes.data.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersRes.data));
+      }
+      if (tasksRes.data) {
+        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasksRes.data));
+      }
+      if (assignmentsRes.data) {
+        localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignmentsRes.data));
+      }
+      if (submissionsRes.data) {
+        localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissionsRes.data));
+      }
+      if (reviewsRes.data) {
+        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviewsRes.data));
+      }
+      if (eventsRes.data) {
+        localStorage.setItem(STORAGE_KEYS.CALENDAR_EVENTS, JSON.stringify(eventsRes.data));
+      }
+      if (notificationsRes.data) {
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notificationsRes.data));
+      }
+      if (activityRes.data) {
+        localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(activityRes.data));
+      }
+
+      this.notify();
+    } catch (err) {
+      console.warn('Failed to pull from Supabase:', err);
+    }
+  }
+
+  private async pushToSupabase(
+    table: string,
+    payload: any,
+    action: 'insert' | 'update' | 'delete',
+    matchColumn = 'id',
+    matchValue?: any
+  ) {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      if (action === 'insert') {
+        const { error } = await (supabase as any).from(table).insert(payload);
+        if (error) console.warn(`Supabase insert error on ${table}:`, error.message);
+      } else if (action === 'update') {
+        const { error } = await (supabase as any)
+          .from(table)
+          .update(payload)
+          .eq(matchColumn, matchValue ?? payload[matchColumn]);
+        if (error) console.warn(`Supabase update error on ${table}:`, error.message);
+      } else if (action === 'delete') {
+        const { error } = await (supabase as any).from(table).delete().eq(matchColumn, matchValue);
+        if (error) console.warn(`Supabase delete error on ${table}:`, error.message);
+      }
+    } catch (err) {
+      console.warn(`Supabase ${action} failed on ${table}:`, err);
+    }
   }
 
   public async ensureInitialized(forceReset = false) {
@@ -306,6 +414,7 @@ class TeamFlowDatabase {
     };
     teams.push(newTeam);
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
+    this.pushToSupabase('teams', newTeam, 'insert');
 
     const currentUser = this.getCurrentUser();
     if (currentUser) {
@@ -321,6 +430,7 @@ class TeamFlowDatabase {
     if (idx === -1) return null;
     teams[idx] = { ...teams[idx], ...updates };
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
+    this.pushToSupabase('teams', teams[idx], 'update', 'id', id);
     this.notify();
     return teams[idx];
   }
@@ -330,6 +440,7 @@ class TeamFlowDatabase {
     const filtered = teams.filter((t) => t.id !== id);
     if (filtered.length === teams.length) return false;
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(filtered));
+    this.pushToSupabase('teams', null, 'delete', 'id', id);
     this.notify();
     return true;
   }
@@ -375,6 +486,7 @@ class TeamFlowDatabase {
 
     users.push(newUser);
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.pushToSupabase('users', newUser, 'insert');
 
     const currentUser = this.getCurrentUser();
     if (currentUser) {
@@ -395,6 +507,7 @@ class TeamFlowDatabase {
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.pushToSupabase('users', users[idx], 'update', 'id', id);
     this.notify();
     return users[idx];
   }
@@ -565,6 +678,13 @@ class TeamFlowDatabase {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignments));
 
+    this.pushToSupabase('tasks', newTask, 'insert');
+    assignments
+      .filter((a) => a.task_id === newTask.id)
+      .forEach((asg) => {
+        this.pushToSupabase('task_assignments', asg, 'insert');
+      });
+
     if (currentUser) {
       this.addActivityLog(currentUser, `created task "${newTask.title}"`, 'task', newTask.id);
     }
@@ -584,6 +704,7 @@ class TeamFlowDatabase {
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    this.pushToSupabase('tasks', tasks[idx], 'update', 'id', id);
     this.notify();
     return tasks[idx];
   }
@@ -599,6 +720,8 @@ class TeamFlowDatabase {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(filteredTasks));
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignments));
     localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
+
+    this.pushToSupabase('tasks', null, 'delete', 'id', id);
 
     const currentUser = this.getCurrentUser();
     if (currentUser) {
@@ -620,6 +743,7 @@ class TeamFlowDatabase {
       asg.completed_at = new Date().toISOString();
     }
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+    this.pushToSupabase('task_assignments', asg, 'update', 'id', assignmentId);
     this.notify();
     return true;
   }
@@ -656,6 +780,9 @@ class TeamFlowDatabase {
     asg.status = nextVersion > 1 ? 'resubmitted' : 'submitted';
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignments));
     localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
+
+    this.pushToSupabase('submissions', newSubmission, 'insert');
+    this.pushToSupabase('task_assignments', asg, 'update', 'id', asg.id);
 
     // Notify admins
     const submitter = this.getUser(data.user_id);
@@ -723,6 +850,9 @@ class TeamFlowDatabase {
 
     localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(assignments));
     localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+
+    this.pushToSupabase('submission_reviews', newReview, 'insert');
+    this.pushToSupabase('task_assignments', asg, 'update', 'id', asg.id);
 
     // Notify assigned member
     const reviewer = this.getUser(data.reviewed_by);
@@ -800,6 +930,7 @@ class TeamFlowDatabase {
 
     events.push(newEvent);
     localStorage.setItem(STORAGE_KEYS.CALENDAR_EVENTS, JSON.stringify(events));
+    this.pushToSupabase('calendar_events', newEvent, 'insert');
 
     if (currentUser) {
       this.addActivityLog(currentUser, `scheduled calendar event "${newEvent.title}"`, 'calendar_event', newEvent.id);
@@ -820,6 +951,7 @@ class TeamFlowDatabase {
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEYS.CALENDAR_EVENTS, JSON.stringify(events));
+    this.pushToSupabase('calendar_events', events[idx], 'update', 'id', id);
     this.notify();
     return events[idx];
   }
@@ -829,6 +961,7 @@ class TeamFlowDatabase {
     const filtered = events.filter((e) => e.id !== id);
     if (filtered.length === events.length) return false;
     localStorage.setItem(STORAGE_KEYS.CALENDAR_EVENTS, JSON.stringify(filtered));
+    this.pushToSupabase('calendar_events', null, 'delete', 'id', id);
     this.notify();
     return true;
   }
@@ -853,6 +986,7 @@ class TeamFlowDatabase {
     };
     notifs.unshift(newNotif);
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+    this.pushToSupabase('app_notifications', newNotif, 'insert');
     this.notify();
     return newNotif;
   }
@@ -863,6 +997,7 @@ class TeamFlowDatabase {
     if (!n) return false;
     n.is_read = true;
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+    this.pushToSupabase('app_notifications', { is_read: true }, 'update', 'id', id);
     this.notify();
     return true;
   }
@@ -875,6 +1010,7 @@ class TeamFlowDatabase {
       }
     });
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifs));
+    this.pushToSupabase('app_notifications', { is_read: true }, 'update', 'user_id', userId);
     this.notify();
   }
 
@@ -908,6 +1044,7 @@ class TeamFlowDatabase {
     // keep latest 100 entries
     if (logs.length > 100) logs.pop();
     localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(logs));
+    this.pushToSupabase('activity_logs', newLog, 'insert');
     this.notify();
     return newLog;
   }

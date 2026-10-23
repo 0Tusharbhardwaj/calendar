@@ -16,6 +16,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { isSupabaseConfigured } from '../services/supabaseClient';
 
 export type ActiveTab = 'dashboard' | 'calendar' | 'tasks' | 'approvals' | 'teams' | 'activity';
 
@@ -247,10 +248,23 @@ export const Navigation: React.FC<NavigationProps> = ({
                     <p className="text-[#7A6359] text-[11px] font-medium mt-0.5">
                       @{currentUser?.username} • {currentUser?.designation}
                     </p>
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#A63500]">
-                      <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
-                      Administrator
-                    </span>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#A63500]">
+                        <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
+                        Administrator
+                      </span>
+                      {isSupabaseConfigured ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Supabase Live
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#7A6359] bg-[#FAF1E6] border border-[#E8D0B7] px-1.5 py-0.5 rounded-full" title="Connect Supabase for live multi-device sync">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          Local Mode
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Switch Between Tushar & Bhoomika */}
