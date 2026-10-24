@@ -33,7 +33,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'teamflow_notifications',
   ACTIVITY_LOGS: 'teamflow_activity_logs',
   SESSION: 'teamflow_session',
-  INITIALIZED: 'teamflow_db_initialized_v4_production_clean',
+  INITIALIZED: 'teamflow_db_initialized_v5_auth_flow',
 };
 
 // Default departments (The 4 core functional teams)
@@ -323,8 +323,8 @@ class TeamFlowDatabase {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
     localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(activity));
 
-    // Default active session to Tushar Bhardwaj (Admin)
-    localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(seedUsers[0]));
+    // Do not set default active session - users must explicitly log in!
+    localStorage.removeItem(STORAGE_KEYS.SESSION);
 
     localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
     this.notify();
@@ -332,27 +332,25 @@ class TeamFlowDatabase {
 
   // --- Auth & Session ---
   public getCurrentUser(): UserProfile | null {
+    const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
+    if (!raw) return null;
+
     const users = this.getUsers();
     if (!users || users.length === 0) return null;
 
-    const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
-      return users[0];
-    }
     try {
       const user = JSON.parse(raw) as UserProfile;
       // Refresh with latest from USERS table
       const fresh = users.find((u) => u.id === user.id);
-      if (fresh) {
+      if (fresh && fresh.is_active) {
         return fresh;
       }
-      // If cached session user no longer exists (e.g. wiped dummy user), reset to first active admin
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
-      return users[0];
+      // If cached session user no longer exists or is deactivated, invalidate session
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      return null;
     } catch {
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[0]));
-      return users[0];
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      return null;
     }
   }
 

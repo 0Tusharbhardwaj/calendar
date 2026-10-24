@@ -9,6 +9,7 @@ import { TasksView } from './components/views/TasksView';
 import { ApprovalsView } from './components/views/ApprovalsView';
 import { TeamsMembersView } from './components/views/TeamsMembersView';
 import { ActivityView } from './components/views/ActivityView';
+import { LoginPage } from './components/views/LoginPage';
 import { LoginModal } from './components/views/LoginModal';
 import { CreateTaskModal } from './components/modals/CreateTaskModal';
 import { CreateEventModal } from './components/modals/CreateEventModal';
@@ -58,11 +59,7 @@ const MainLayout: React.FC = () => {
   }, []);
 
   if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-[#FDF7F0] flex items-center justify-center p-4">
-        <LoginModal isOpen={true} canClose={false} />
-      </div>
-    );
+    return <LoginPage />;
   }
 
   return (
