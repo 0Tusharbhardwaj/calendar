@@ -1,5 +1,17 @@
-import React, { useState } from 'react';
-import { X, UserPlus, AlertCircle, Key, ShieldCheck, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  X,
+  UserPlus,
+  AlertCircle,
+  Key,
+  ShieldCheck,
+  User,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Lock,
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UserProfile } from '../../types';
 
@@ -7,151 +19,275 @@ interface UserModalProps {
   userToEdit?: UserProfile | null;
   isOpen: boolean;
   onClose: () => void;
+  initialFocusPassword?: boolean;
 }
 
 export const UserModal: React.FC<UserModalProps> = ({
   userToEdit,
   isOpen,
   onClose,
+  initialFocusPassword = false,
 }) => {
-  const { teams, createUser, updateUser, resetPassword } = useApp();
+  const { teams, users, currentUser, createUser, updateUser, resetPassword } = useApp();
 
-  const [fullName, setFullName] = useState(userToEdit?.full_name || '');
-  const [username, setUsername] = useState(userToEdit?.username || '');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'member'>(userToEdit?.role || 'member');
-  const [teamId, setTeamId] = useState(userToEdit?.team_id || teams[0]?.id || 'team-writing');
-  const [designation, setDesignation] = useState(userToEdit?.designation || '');
-  const [isActive, setIsActive] = useState(userToEdit ? userToEdit.is_active : true);
-  const [error, setError] = useState('');
-  const [resetPassMode, setResetPassMode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const [teamId, setTeamId] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [isActive, setIsActive] = useState(true);
+
+  // Password editing for existing users
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isResettingPass, setIsResettingPass] = useState(false);
+
+  const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize state when modal opens or userToEdit changes
+  useEffect(() => {
+    if (isOpen) {
+      if (userToEdit) {
+        setFullName(userToEdit.full_name || '');
+        setUsername(userToEdit.username || '');
+        setRole(userToEdit.role || 'member');
+        setTeamId(userToEdit.team_id || teams[0]?.id || 'team-writing');
+        setDesignation(userToEdit.designation || '');
+        setIsActive(userToEdit.is_active !== false);
+        setPassword('');
+        setNewPassword('');
+        setShowPassword(false);
+        setShowNewPassword(false);
+        setError('');
+        setSuccessMsg('');
+      } else {
+        setFullName('');
+        setUsername('');
+        setPassword('');
+        setNewPassword('');
+        setRole('member');
+        setTeamId(teams[0]?.id || 'team-writing');
+        setDesignation('');
+        setIsActive(true);
+        setShowPassword(false);
+        setShowNewPassword(false);
+        setError('');
+        setSuccessMsg('');
+      }
+
+      if (initialFocusPassword) {
+        setTimeout(() => {
+          passwordInputRef.current?.focus();
+        }, 150);
+      }
+    }
+  }, [isOpen, userToEdit, teams, initialFocusPassword]);
 
   if (!isOpen) return null;
+
+  const isSelf = currentUser && userToEdit && currentUser.id === userToEdit.id;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
 
-    if (!fullName.trim() || !username.trim()) {
-      setError('Full name and username are required.');
+    const cleanFullName = fullName.trim();
+    const cleanUsername = username.trim().toLowerCase();
+
+    if (!cleanFullName || !cleanUsername) {
+      setError('Both full name and username are required.');
       return;
     }
 
-    if (!userToEdit) {
-      if (!password.trim()) {
-        setError('A temporary password is required for account creation.');
-        return;
-      }
-      const res = await createUser({
-        full_name: fullName.trim(),
-        username: username.trim().toLowerCase(),
-        passwordPlain: password.trim(),
-        role,
-        team_id: teamId,
-        designation: designation.trim() || 'Team Specialist',
-      });
-
-      if (!res.success) {
-        setError(res.error || 'Failed to create user account.');
-        return;
-      }
-    } else {
-      updateUser(userToEdit.id, {
-        full_name: fullName.trim(),
-        role,
-        team_id: teamId,
-        designation: designation.trim(),
-        is_active: isActive,
-      });
+    // Check for username conflicts
+    const conflict = users.find(
+      (u) =>
+        u.id !== userToEdit?.id &&
+        u.username.toLowerCase() === cleanUsername
+    );
+    if (conflict) {
+      setError(`The username "@${cleanUsername}" is already taken by another team member.`);
+      return;
     }
 
-    onClose();
+    setIsSaving(true);
+
+    try {
+      if (!userToEdit) {
+        // Create new account
+        if (!password.trim()) {
+          setError('A password is required for this new account.');
+          setIsSaving(false);
+          return;
+        }
+
+        const res = await createUser({
+          full_name: cleanFullName,
+          username: cleanUsername,
+          passwordPlain: password.trim(),
+          role,
+          team_id: teamId || teams[0]?.id || 'team-writing',
+          designation: designation.trim() || 'Team Specialist',
+        });
+
+        if (!res.success) {
+          setError(res.error || 'Failed to create user account.');
+          setIsSaving(false);
+          return;
+        }
+      } else {
+        // Update existing user profile
+        await updateUser(userToEdit.id, {
+          full_name: cleanFullName,
+          username: cleanUsername,
+          role,
+          team_id: teamId,
+          designation: designation.trim(),
+          is_active: isActive,
+        });
+
+        // If a new password was provided, reset it immediately
+        if (newPassword.trim()) {
+          const passOk = await resetPassword(userToEdit.id, newPassword.trim());
+          if (!passOk) {
+            setError('Profile updated, but password reset encountered an error.');
+            setIsSaving(false);
+            return;
+          }
+        }
+      }
+
+      setIsSaving(false);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred while saving.');
+      setIsSaving(false);
+    }
   };
 
-  const handleAdminResetPassword = async () => {
-    if (!userToEdit || !newPassword.trim()) return;
-    const ok = await resetPassword(userToEdit.id, newPassword.trim());
-    if (ok) {
-      setSuccessMsg(`Password successfully reset for @${userToEdit.username}!`);
-      setResetPassMode(false);
-      setNewPassword('');
+  // Quick reset password handler
+  const handleQuickPasswordReset = async () => {
+    if (!userToEdit) return;
+    if (!newPassword.trim()) {
+      setError('Please type a new password in the field before clicking update.');
+      return;
+    }
+
+    setError('');
+    setIsResettingPass(true);
+
+    try {
+      const ok = await resetPassword(userToEdit.id, newPassword.trim());
+      setIsResettingPass(false);
+      if (ok) {
+        setSuccessMsg(`✓ Password for @${userToEdit.username} was updated successfully!`);
+        setNewPassword('');
+      } else {
+        setError('Failed to update password. Please try again.');
+      }
+    } catch (err: any) {
+      setIsResettingPass(false);
+      setError(err?.message || 'Failed to update password.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2A1812]/50 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#2A1812]/50 backdrop-blur-xs animate-fadeIn">
       <div
-        className="w-full max-w-md bg-[#FFFBF7] rounded-3xl border border-[#E8D0B7] shadow-2xl overflow-hidden flex flex-col animate-scaleUp"
+        className="w-full max-w-lg bg-[#FFFBF7] rounded-3xl border border-[#E8D0B7] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-[#E8D0B7] flex items-center justify-between bg-[#FAE6CE]/40">
+        <div className="p-4 sm:p-5 border-b border-[#E8D0B7] flex items-center justify-between bg-[#FAE6CE]/40">
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-full bg-[#FF5601] flex items-center justify-center text-white shadow-sm">
-              <UserPlus className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#FF5601] to-[#FC9631] flex items-center justify-center text-white shadow-xs">
+              {userToEdit ? <Key className="w-4.5 h-4.5" /> : <UserPlus className="w-4.5 h-4.5" />}
             </div>
             <div>
-              <h3 className="font-extrabold text-[#2A1812] text-base">
-                {userToEdit ? 'Manage Member Account' : 'Add Team Member'}
+              <h3 className="font-extrabold text-[#2A1812] text-base leading-tight">
+                {userToEdit
+                  ? isSelf
+                    ? 'My Profile & Security'
+                    : `Edit Profile: ${userToEdit.full_name}`
+                  : 'Add New Team Member'}
               </h3>
-              <p className="text-xs text-[#7A6359]">Internal account credentials & role</p>
+              <p className="text-xs text-[#7A6359] mt-0.5">
+                {userToEdit
+                  ? 'Update member details, departmental role, and login password'
+                  : 'Provision account credentials for a new team member'}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#7A6359] hover:bg-[#FAE6CE] hover:text-[#2A1812]"
+            className="p-1.5 rounded-full text-[#7A6359] hover:bg-[#FAE6CE] hover:text-[#2A1812] cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs">
-              {successMsg}
+            <div className="p-3 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="e.g. Jordan Lee"
-              className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          {/* Full Name & Username */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-                Username *
+                Full Name *
               </label>
               <input
                 type="text"
                 required
-                disabled={!!userToEdit}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="jordan"
-                className="w-full bg-[#FAE6CE]/20 disabled:opacity-60 border border-[#E8D0B7] rounded-xl px-3 py-2 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. John Doe"
+                className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
               />
             </div>
 
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
+                Username (@login) *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#7A6359]">
+                  @
+                </span>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                  placeholder="username"
+                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-7 pr-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Platform Role & Primary Team */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
                 Platform Role *
@@ -159,39 +295,21 @@ export const UserModal: React.FC<UserModalProps> = ({
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'admin' | 'member')}
-                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3 py-2 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
               >
                 <option value="member">Team Member</option>
-                <option value="admin">Administrator</option>
+                <option value="admin">Administrator (Full Access)</option>
               </select>
             </div>
-          </div>
 
-          {!userToEdit && (
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-                Temporary Password *
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
-                className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2 text-xs text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-                Primary Team *
+                Primary Department *
               </label>
               <select
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
-                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3 py-2 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
               >
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -200,102 +318,147 @@ export const UserModal: React.FC<UserModalProps> = ({
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-                Designation / Title
-              </label>
-              <input
-                type="text"
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                placeholder="Motion Animator"
-                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3 py-2 text-xs text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
-              />
-            </div>
           </div>
 
-          {/* If Editing: Toggle Active Status & Password Reset */}
+          {/* Designation / Title */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
+              Designation / Role Title *
+            </label>
+            <input
+              type="text"
+              required
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              placeholder="e.g. Social Media Manager, Video Editor, Graphic Designer"
+              className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
+            />
+          </div>
+
+          {/* New User: Temporary Password */}
+          {!userToEdit && (
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
+                Initial Account Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#7A6359] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Temporary login password"
+                  className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl pl-9 pr-10 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6359] hover:text-[#2A1812] cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-[#7A6359] mt-1">
+                Provide these credentials to your team member so they can log in.
+              </p>
+            </div>
+          )}
+
+          {/* Existing User: Password Reset & Account Status Card */}
           {userToEdit && (
-            <div className="p-3.5 rounded-2xl bg-[#FAE6CE]/30 border border-[#E8D0B7] space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="bg-[#FAE6CE]/25 border border-[#E8D0B7] rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E8D0B7]/60">
                 <div>
-                  <span className="text-xs font-bold text-[#2A1812] block">Account Status</span>
-                  <span className="text-[10px] text-[#7A6359]">
-                    {isActive ? 'Active and allowed to log in' : 'Deactivated account'}
+                  <span className="text-xs font-black text-[#2A1812] block">Account Status</span>
+                  <span className="text-[11px] text-[#7A6359]">
+                    {isActive ? 'Account active and allowed to log in' : 'Account deactivated'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsActive(!isActive)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                  className={`px-3 py-1 rounded-full text-xs font-black transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-red-600 text-white'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                      : 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
                   }`}
                 >
                   {isActive ? 'Active' : 'Inactive'}
                 </button>
               </div>
 
-              <div className="pt-2 border-t border-[#E8D0B7]/60">
-                {!resetPassMode ? (
+              {/* Password Edit Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-[#2A1812] flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-[#FF5601]" />
+                    <span>Change / Reset Password</span>
+                  </label>
+                  <span className="text-[10px] text-[#7A6359] font-medium">
+                    (Leave blank to keep unchanged)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      ref={passwordInputRef}
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        setError('');
+                        setSuccessMsg('');
+                      }}
+                      placeholder="Type new password..."
+                      className="w-full bg-white border border-[#E8D0B7] rounded-xl pl-3.5 pr-10 py-2 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6359] hover:text-[#2A1812] cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setResetPassMode(true)}
-                    className="text-xs font-bold text-[#A63500] hover:text-[#FF5601] flex items-center gap-1.5"
+                    disabled={!newPassword.trim() || isResettingPass}
+                    onClick={handleQuickPasswordReset}
+                    className="px-3.5 py-2 rounded-xl bg-[#2A1812] hover:bg-[#FF5601] text-white text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex-shrink-0"
+                    title="Update password immediately without modifying other fields"
                   >
-                    <Key className="w-3.5 h-3.5" />
-                    <span>Reset Member Password</span>
+                    {isResettingPass ? 'Updating...' : 'Update Password'}
                   </button>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-bold text-[#2A1812]">
-                      New Password
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
-                        className="flex-1 bg-white border border-[#E8D0B7] rounded-xl px-3 py-1.5 text-xs text-[#2A1812]"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAdminResetPassword}
-                        className="px-3 py-1.5 rounded-xl bg-[#2A1812] text-white text-xs font-bold hover:bg-[#FF5601]"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setResetPassMode(false)}
-                        className="text-xs text-[#7A6359] hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </div>
+                <p className="text-[11px] text-[#7A6359]">
+                  Admins can reset this password at any moment. Saving changes will immediately update credentials across all devices.
+                </p>
               </div>
             </div>
           )}
 
-          {/* Footer */}
+          {/* Footer Actions */}
           <div className="pt-3 border-t border-[#E8D0B7] flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-bold text-[#4A352D] hover:bg-[#FAE6CE]"
+              className="px-4 py-2 rounded-xl text-xs font-bold text-[#7A6359] hover:text-[#2A1812] hover:bg-[#FAE6CE]/60 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-full text-xs font-black text-white bg-[#FF5601] hover:bg-[#E04800] shadow-sm transition-all"
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-[#FF5601] to-[#E04800] hover:from-[#E04800] hover:to-[#C83E00] shadow-[0_4px_14px_-2px_rgba(255,86,1,0.35)] transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
-              {userToEdit ? 'Save Account' : 'Create Account'}
+              {isSaving
+                ? 'Saving...'
+                : userToEdit
+                ? 'Save Account Changes'
+                : 'Create Member Account'}
             </button>
           </div>
         </form>

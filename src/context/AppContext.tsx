@@ -53,7 +53,7 @@ interface AppContextType {
 
   // Users
   createUser: (data: any) => Promise<{ success: boolean; error?: string }>;
-  updateUser: (id: string, updates: Partial<UserProfile>) => void;
+  updateUser: (id: string, updates: Partial<UserProfile>) => Promise<UserProfile | null>;
   resetPassword: (userId: string, newPass: string) => Promise<boolean>;
 
   // Calendar Events
@@ -204,8 +204,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return db.createUser(data);
   };
 
-  const updateUser = (id: string, updates: Partial<UserProfile>) => {
-    db.updateUser(id, updates);
+  const updateUser = async (id: string, updates: Partial<UserProfile>) => {
+    return db.updateUser(id, updates);
   };
 
   const resetPassword = async (userId: string, newPass: string) => {

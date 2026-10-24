@@ -105,7 +105,7 @@ export async function createSeedUsers(): Promise<UserProfile[]> {
       password_hash: adminHash,
       role: 'admin',
       team_id: 'team-others',
-      designation: 'Co-Founder & Lead Administrator',
+      designation: 'Social Media Manager',
       avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc',
       is_active: true,
       created_at: new Date().toISOString(),
@@ -304,6 +304,27 @@ class TeamFlowDatabase {
 
   public async ensureInitialized(forceReset = false) {
     if (!forceReset && localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
+      // Automatic migration: ensure Bhoomika has designation 'Social Media Manager'
+      const existingUsers = this.getUsers();
+      const bhoomika = existingUsers.find((u) => u.id === 'usr-admin-bhoomika' || u.username === 'bhoomika');
+      if (bhoomika && bhoomika.designation !== 'Social Media Manager') {
+        bhoomika.designation = 'Social Media Manager';
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(existingUsers));
+        this.pushToSupabase('users', bhoomika, 'update', 'id', bhoomika.id);
+        const sessionRaw = localStorage.getItem(STORAGE_KEYS.SESSION);
+        if (sessionRaw) {
+          try {
+            const s = JSON.parse(sessionRaw);
+            if (s.id === bhoomika.id) {
+              s.designation = 'Social Media Manager';
+              localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(s));
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        this.notify();
+      }
       return;
     }
 
@@ -506,6 +527,20 @@ class TeamFlowDatabase {
     };
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
     this.pushToSupabase('users', users[idx], 'update', 'id', id);
+
+    // Keep active session in sync if this user is currently logged in
+    const currentSessionRaw = localStorage.getItem(STORAGE_KEYS.SESSION);
+    if (currentSessionRaw) {
+      try {
+        const sessionUser = JSON.parse(currentSessionRaw) as UserProfile;
+        if (sessionUser.id === id) {
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(users[idx]));
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     this.notify();
     return users[idx];
   }

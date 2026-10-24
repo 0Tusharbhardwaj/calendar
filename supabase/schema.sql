@@ -189,7 +189,7 @@ INSERT INTO public.teams (id, name, description, color, badge_bg, badge_text, is
 -- Passwords: 'admin123' (SHA-256: 240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9)
 INSERT INTO public.users (id, full_name, username, password_hash, role, team_id, designation, avatar_url, is_active) VALUES
 ('usr-admin-tushar', 'Tushar Bhardwaj', 'tushar', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Founder & Lead Administrator', 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf', true),
-('usr-admin-bhoomika', 'Bhoomika Chawla', 'bhoomika', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Co-Founder & Lead Administrator', 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc', true);
+('usr-admin-bhoomika', 'Bhoomika Chawla', 'bhoomika', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Social Media Manager', 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc', true);
 
 -- 3. Initial Welcome Notification
 INSERT INTO public.app_notifications (id, user_id, title, message, type, is_read) VALUES

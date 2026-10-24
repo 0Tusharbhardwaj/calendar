@@ -20,6 +20,7 @@ interface TeamsMembersViewProps {
   onOpenEditTeam: (team: Team) => void;
   onOpenCreateUser: () => void;
   onOpenEditUser: (user: UserProfile) => void;
+  onOpenEditUserPassword?: (user: UserProfile) => void;
 }
 
 export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
@@ -27,6 +28,7 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
   onOpenEditTeam,
   onOpenCreateUser,
   onOpenEditUser,
+  onOpenEditUserPassword,
 }) => {
   const { teams, users, tasks, currentUser, deleteTeam, updateUser } = useApp();
   const isAdmin = currentUser?.role === 'admin';
@@ -302,12 +304,29 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
 
                       {isAdmin && (
                         <td className="py-3.5 px-5 text-right">
-                          <button
-                            onClick={() => onOpenEditUser(user)}
-                            className="text-xs font-bold text-[#FF5601] hover:underline"
-                          >
-                            Edit Account
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => onOpenEditUser(user)}
+                              className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Edit profile & permissions"
+                            >
+                              <Edit2 className="w-3 h-3 text-[#FF5601]" />
+                              <span>Edit Profile</span>
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                onOpenEditUserPassword
+                                  ? onOpenEditUserPassword(user)
+                                  : onOpenEditUser(user)
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Change password"
+                            >
+                              <Key className="w-3 h-3 text-[#FC9631]" />
+                              <span>Password</span>
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>

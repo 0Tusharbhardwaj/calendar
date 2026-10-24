@@ -13,6 +13,7 @@ import {
   ChevronDown,
   LogOut,
   ShieldCheck,
+  Key,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -26,6 +27,7 @@ interface NavigationProps {
   onOpenCommandPalette: () => void;
   onOpenNotifications: () => void;
   onOpenLogin: () => void;
+  onOpenMyProfile?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -36,6 +38,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenCommandPalette,
   onOpenNotifications,
   onOpenLogin,
+  onOpenMyProfile,
 }) => {
   const { currentUser, logout, unreadCount, tasks } = useApp();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -261,8 +264,20 @@ export const Navigation: React.FC<NavigationProps> = ({
                     </span>
                   </div>
 
-                  {/* Sign Out Option */}
-                  <div className="pt-1.5 px-1.5">
+                  {/* Actions */}
+                  <div className="pt-1.5 px-1.5 space-y-0.5">
+                    {onOpenMyProfile && (
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          onOpenMyProfile();
+                        }}
+                        className="w-full px-3 py-2 text-left font-bold text-[#2A1812] hover:bg-[#FAE6CE]/60 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <Key className="w-3.5 h-3.5 text-[#FF5601]" />
+                        <span>My Profile & Password</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);

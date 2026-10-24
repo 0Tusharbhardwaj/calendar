@@ -45,6 +45,7 @@ const MainLayout: React.FC = () => {
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<UserProfile | null>(null);
+  const [userModalFocusPassword, setUserModalFocusPassword] = useState(false);
 
   // Global key listener for Cmd+K / Ctrl+K
   useEffect(() => {
@@ -79,6 +80,11 @@ const MainLayout: React.FC = () => {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenMyProfile={() => {
+          setUserToEdit(currentUser);
+          setUserModalFocusPassword(false);
+          setIsUserModalOpen(true);
+        }}
       />
 
       {/* 2. Main Content Canvas */}
@@ -143,10 +149,17 @@ const MainLayout: React.FC = () => {
             }}
             onOpenCreateUser={() => {
               setUserToEdit(null);
+              setUserModalFocusPassword(false);
               setIsUserModalOpen(true);
             }}
             onOpenEditUser={(u) => {
               setUserToEdit(u);
+              setUserModalFocusPassword(false);
+              setIsUserModalOpen(true);
+            }}
+            onOpenEditUserPassword={(u) => {
+              setUserToEdit(u);
+              setUserModalFocusPassword(true);
               setIsUserModalOpen(true);
             }}
           />
@@ -224,11 +237,14 @@ const MainLayout: React.FC = () => {
       />
 
       <UserModal
+        key={userToEdit ? userToEdit.id : 'new-user'}
         userToEdit={userToEdit}
         isOpen={isUserModalOpen}
+        initialFocusPassword={userModalFocusPassword}
         onClose={() => {
           setIsUserModalOpen(false);
           setUserToEdit(null);
+          setUserModalFocusPassword(false);
         }}
       />
     </div>
