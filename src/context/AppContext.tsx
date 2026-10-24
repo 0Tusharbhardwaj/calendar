@@ -148,6 +148,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateAssignmentStatus = (assignmentId: string, status: any) => {
+    if (status === 'approved' && currentUser?.role !== 'admin') {
+      console.warn('Unauthorized: Only administrators can approve tasks.');
+      return false;
+    }
     return db.updateAssignmentStatus(assignmentId, status);
   };
 
@@ -174,7 +178,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     decision: ReviewDecision;
     feedback: string;
   }) => {
-    if (!currentUser) return false;
+    if (!currentUser || currentUser.role !== 'admin') {
+      console.warn('Unauthorized: Only administrators can review and approve submissions.');
+      return false;
+    }
     const rev = db.reviewSubmission({
       ...data,
       reviewed_by: currentUser.id,

@@ -771,6 +771,15 @@ class TeamFlowDatabase {
     const asg = assignments.find((a) => a.id === assignmentId);
     if (!asg) return false;
 
+    // Strict security check: Only administrators can approve assignments!
+    if (status === 'approved') {
+      const currentUser = this.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('Unauthorized: Only administrators can mark an assignment as approved.');
+        return false;
+      }
+    }
+
     asg.status = status;
     if (status === 'approved') {
       asg.completed_at = new Date().toISOString();
@@ -851,6 +860,13 @@ class TeamFlowDatabase {
     decision: ReviewDecision;
     feedback: string;
   }): SubmissionReview | null {
+    // Strict permission check: Only administrators can approve or review submissions!
+    const reviewer = this.getUser(data.reviewed_by);
+    if (!reviewer || reviewer.role !== 'admin') {
+      console.warn('Unauthorized: Only workspace administrators have permission to review or approve submissions.');
+      return null;
+    }
+
     const submissions = this.getSubmissions();
     const sub = submissions.find((s) => s.id === data.submission_id);
     if (!sub) return null;
@@ -888,7 +904,6 @@ class TeamFlowDatabase {
     this.pushToSupabase('task_assignments', asg, 'update', 'id', asg.id);
 
     // Notify assigned member
-    const reviewer = this.getUser(data.reviewed_by);
     const task = this.getTasks().find((t) => t.id === asg.task_id);
 
     const titleMap: Record<ReviewDecision, string> = {

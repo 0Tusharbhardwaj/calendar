@@ -41,6 +41,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenMyProfile,
 }) => {
   const { currentUser, logout, unreadCount, tasks } = useApp();
+  const isAdmin = currentUser?.role === 'admin';
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
 
@@ -123,22 +124,24 @@ export const Navigation: React.FC<NavigationProps> = ({
               <span>Tasks</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('approvals')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
-                activeTab === 'approvals'
-                  ? 'bg-white text-[#2A1812] shadow-xs border border-[#E8D0B7]/50'
-                  : 'text-[#6B554B] hover:text-[#2A1812] hover:bg-white/40'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#FE75B9]" />
-              <span>Approvals</span>
-              {pendingApprovalsCount > 0 && (
-                <span className="bg-[#FE75B9] text-[#2A1812] font-black text-[10px] px-1.5 rounded-full ml-0.5">
-                  {pendingApprovalsCount}
-                </span>
-              )}
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('approvals')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  activeTab === 'approvals'
+                    ? 'bg-white text-[#2A1812] shadow-xs border border-[#E8D0B7]/50'
+                    : 'text-[#6B554B] hover:text-[#2A1812] hover:bg-white/40'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#FE75B9]" />
+                <span>Approvals</span>
+                {pendingApprovalsCount > 0 && (
+                  <span className="bg-[#FE75B9] text-[#2A1812] font-black text-[10px] px-1.5 rounded-full ml-0.5">
+                    {pendingApprovalsCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('teams')}
@@ -298,7 +301,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       {/* 2. Native-Grade Mobile Bottom Navigation Bar (Phone viewport < 768px) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FFFBF7]/95 backdrop-blur-md border-t border-[#E8D0B7] py-2 px-2 shadow-[0_-4px_20px_rgba(42,24,18,0.05)]">
-        <div className="grid grid-cols-5 gap-1">
+        <div className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} gap-1`}>
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex flex-col items-center py-1 rounded-xl transition-all ${
@@ -341,22 +344,24 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="text-[10px] tracking-tight mt-0.5">Tasks</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`flex flex-col items-center py-1 rounded-xl transition-all relative ${
-              activeTab === 'approvals'
-                ? 'text-[#FF5601] font-black'
-                : 'text-[#7A6359] hover:text-[#2A1812]'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activeTab === 'approvals' ? 'bg-[#FF5601]/15 text-[#FF5601]' : ''}`}>
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] tracking-tight mt-0.5">Approvals</span>
-            {pendingApprovalsCount > 0 && (
-              <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-[#FE75B9]" />
-            )}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`flex flex-col items-center py-1 rounded-xl transition-all relative ${
+                activeTab === 'approvals'
+                  ? 'text-[#FF5601] font-black'
+                  : 'text-[#7A6359] hover:text-[#2A1812]'
+              }`}
+            >
+              <div className={`p-1 rounded-lg ${activeTab === 'approvals' ? 'bg-[#FF5601]/15 text-[#FF5601]' : ''}`}>
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5">Approvals</span>
+              {pendingApprovalsCount > 0 && (
+                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-[#FE75B9]" />
+              )}
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('teams')}

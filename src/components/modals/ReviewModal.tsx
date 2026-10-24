@@ -23,7 +23,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { tasks, reviewSubmission } = useApp();
+  const { tasks, currentUser, reviewSubmission } = useApp();
+  const isAdmin = currentUser?.role === 'admin';
 
   const [decision, setDecision] = useState<ReviewDecision>('approved');
   const [feedback, setFeedback] = useState('');
@@ -31,6 +32,28 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !submissionId) return null;
+
+  if (!isAdmin) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2A1812]/50 backdrop-blur-xs animate-fadeIn">
+        <div className="w-full max-w-sm bg-[#FFFBF7] rounded-3xl border border-[#E8D0B7] shadow-2xl p-6 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+            <XCircle className="w-6 h-6" />
+          </div>
+          <h3 className="font-black text-base text-[#2A1812]">Administrator Approval Required</h3>
+          <p className="text-xs text-[#7A6359] leading-relaxed">
+            Only workspace administrators (Tushar Bhardwaj & Bhoomika Chawla) have authority to grant official approval or request revisions on work deliverables.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl bg-[#2A1812] text-white text-xs font-bold hover:bg-[#FF5601] transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Find corresponding task, assignment, and submission
   let foundTask = null;
@@ -53,6 +76,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAdmin) {
+      setError('Unauthorized: Only administrators can approve or review submissions.');
+      return;
+    }
 
     if ((decision === 'changes_requested' || decision === 'rejected') && !feedback.trim()) {
       setError('An explanation is mandatory when requesting changes or rejecting work.');

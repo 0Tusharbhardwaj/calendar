@@ -244,6 +244,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   <strong>⚠️ Revision Requested:</strong> Please review the feedback below and submit an updated URL.
                 </div>
               )}
+
+              {(myAssignment.status === 'submitted' || myAssignment.status === 'resubmitted') && (
+                <div className="p-3 bg-white/80 rounded-xl border border-[#F9CC61] text-xs text-[#7A5200] flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#B85B00] flex-shrink-0" />
+                  <span>Deliverable submitted (v{myAssignment.submissions?.[0]?.version_number || 1}). Awaiting administrator review and sign-off.</span>
+                </div>
+              )}
             </div>
           )}
 

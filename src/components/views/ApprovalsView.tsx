@@ -7,7 +7,7 @@ import {
   Sparkles,
   FileCheck,
   Send,
-  ArrowRight,
+  ShieldAlert,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -20,7 +20,34 @@ export const ApprovalsView: React.FC<ApprovalsViewProps> = ({
   onSelectTask,
   onOpenReview,
 }) => {
-  const { tasks } = useApp();
+  const { tasks, currentUser } = useApp();
+  const isAdmin = currentUser?.role === 'admin';
+
+  if (!isAdmin) {
+    return (
+      <div className="bg-[#FFFFFF] border border-[#E8D0B7] rounded-3xl p-12 text-center shadow-warm-sm max-w-xl mx-auto my-8 space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#FF5601]/10 text-[#FF5601] flex items-center justify-center mx-auto shadow-xs">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-black text-[#2A1812]">
+            Administrator Approval Required
+          </h2>
+          <p className="text-xs text-[#7A6359] max-w-md mx-auto leading-relaxed">
+            Reviewing and approving submitted deliverables is strictly reserved for Workspace Administrators (Tushar Bhardwaj & Bhoomika Chawla). As a team specialist, please track your assigned tasks and submit your work URLs from your personal workspace.
+          </p>
+        </div>
+        <div className="pt-2">
+          <button
+            onClick={() => onSelectTask('')}
+            className="px-5 py-2.5 rounded-full text-xs font-black bg-[#2A1812] text-white hover:bg-[#FF5601] transition-all cursor-pointer"
+          >
+            Go to My Tasks
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Extract all submissions that require review: status is 'submitted' or 'resubmitted'
   const pendingItems: {
