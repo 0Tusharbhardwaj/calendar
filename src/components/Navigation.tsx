@@ -14,6 +14,7 @@ import {
   LogOut,
   ShieldCheck,
   Key,
+  User,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -41,7 +42,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenMyProfile,
 }) => {
   const { currentUser, logout, unreadCount, tasks } = useApp();
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
 
@@ -261,9 +262,31 @@ export const Navigation: React.FC<NavigationProps> = ({
                     <p className="text-[#7A6359] text-[11px] font-medium mt-0.5">
                       @{currentUser.username} • {currentUser.designation}
                     </p>
-                    <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#A63500]">
-                      <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
-                      {currentUser.role === 'admin' ? 'Administrator' : 'Team Member'}
+                    <span
+                      className={`inline-flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        currentUser.role === 'super_admin'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : currentUser.role === 'admin'
+                          ? 'bg-[#FF5601]/15 text-[#A63500]'
+                          : 'bg-[#FAE6CE] text-[#4A352D]'
+                      }`}
+                    >
+                      {currentUser.role === 'super_admin' ? (
+                        <>
+                          <span className="text-xs">👑</span>
+                          <span>Super Administrator</span>
+                        </>
+                      ) : currentUser.role === 'admin' ? (
+                        <>
+                          <ShieldCheck className="w-3 h-3 text-[#FF5601]" />
+                          <span>Administrator</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="w-3 h-3 text-[#7A6359]" />
+                          <span>Team Member</span>
+                        </>
+                      )}
                     </span>
                   </div>
 

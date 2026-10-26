@@ -41,7 +41,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
   const myAssignment = task.assignments.find((a) => a.user_id === currentUser?.id);
   const nowStr = new Date().toISOString().split('T')[0];
   const isOverdue = task.deadline < nowStr && task.overall_status !== 'approved';

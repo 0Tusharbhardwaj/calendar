@@ -1,5 +1,6 @@
 import {
   UserProfile,
+  UserRole,
   Team,
   Task,
   TaskAssignment,
@@ -90,10 +91,25 @@ export async function createSeedUsers(): Promise<UserProfile[]> {
       full_name: 'Tushar Bhardwaj',
       username: 'tushar',
       password_hash: adminHash,
+      role: 'super_admin',
+      team_id: 'team-others',
+      designation: 'Founder',
+      description: 'Super Administrator',
+      avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'usr-admin-ayush',
+      full_name: 'Ayush',
+      username: 'ayush',
+      password_hash: adminHash,
       role: 'admin',
       team_id: 'team-others',
-      designation: 'Founder & Lead Administrator',
-      avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf',
+      designation: 'HR',
+      description: 'Core Team Member',
+      avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=ayush&backgroundColor=c0aede',
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -106,6 +122,7 @@ export async function createSeedUsers(): Promise<UserProfile[]> {
       role: 'admin',
       team_id: 'team-others',
       designation: 'Social Media Manager',
+      description: 'Core Operations',
       avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc',
       is_active: true,
       created_at: new Date().toISOString(),
@@ -245,7 +262,47 @@ class TeamFlowDatabase {
         localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teamsRes.data));
       }
       if (usersRes.data && usersRes.data.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersRes.data));
+        // Guarantee Tushar is super_admin and Ayush is admin/HR
+        const mappedUsers = usersRes.data.map((u: UserProfile) => {
+          if (u.username === 'tushar' || u.id === 'usr-admin-tushar') {
+            return {
+              ...u,
+              role: 'super_admin' as const,
+              designation: u.designation || 'Founder',
+              description: u.description || 'Super Administrator',
+            };
+          }
+          if (u.username === 'ayush' || u.id === 'usr-admin-ayush') {
+            return {
+              ...u,
+              role: 'admin' as const,
+              designation: u.designation || 'HR',
+              description: u.description || 'Core Team Member',
+            };
+          }
+          return u;
+        });
+
+        // Ensure Ayush is present if not in Supabase yet
+        if (!mappedUsers.some((u: UserProfile) => u.username === 'ayush' || u.id === 'usr-admin-ayush')) {
+          const adminHash = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
+          mappedUsers.push({
+            id: 'usr-admin-ayush',
+            full_name: 'Ayush',
+            username: 'ayush',
+            password_hash: adminHash,
+            role: 'admin',
+            team_id: 'team-others',
+            designation: 'HR',
+            description: 'Core Team Member',
+            avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=ayush&backgroundColor=c0aede',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mappedUsers));
       }
       if (tasksRes.data) {
         localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasksRes.data));
@@ -286,13 +343,31 @@ class TeamFlowDatabase {
     try {
       if (action === 'insert') {
         const { error } = await (supabase as any).from(table).insert(payload);
-        if (error) console.warn(`Supabase insert error on ${table}:`, error.message);
+        if (error) {
+          // Fallback if Postgres table users check constraint hasn't been altered yet
+          if (table === 'users' && payload.role === 'super_admin' && (error.code === '23514' || error.message?.includes('users_role_check'))) {
+            console.warn('Supabase check constraint fallback for super_admin -> admin in cloud DB');
+            await (supabase as any).from(table).insert({ ...payload, role: 'admin' });
+          } else {
+            console.warn(`Supabase insert error on ${table}:`, error.message);
+          }
+        }
       } else if (action === 'update') {
         const { error } = await (supabase as any)
           .from(table)
           .update(payload)
           .eq(matchColumn, matchValue ?? payload[matchColumn]);
-        if (error) console.warn(`Supabase update error on ${table}:`, error.message);
+        if (error) {
+          if (table === 'users' && payload.role === 'super_admin' && (error.code === '23514' || error.message?.includes('users_role_check'))) {
+            console.warn('Supabase check constraint fallback for super_admin -> admin in cloud DB');
+            await (supabase as any)
+              .from(table)
+              .update({ ...payload, role: 'admin' })
+              .eq(matchColumn, matchValue ?? payload[matchColumn]);
+          } else {
+            console.warn(`Supabase update error on ${table}:`, error.message);
+          }
+        }
       } else if (action === 'delete') {
         const { error } = await (supabase as any).from(table).delete().eq(matchColumn, matchValue);
         if (error) console.warn(`Supabase delete error on ${table}:`, error.message);
@@ -304,20 +379,59 @@ class TeamFlowDatabase {
 
   public async ensureInitialized(forceReset = false) {
     if (!forceReset && localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
-      // Automatic migration: ensure Bhoomika has designation 'Social Media Manager'
+      let usersChanged = false;
       const existingUsers = this.getUsers();
+
+      // Ensure Tushar is super_admin with designation 'Founder' and description 'Super Administrator'
+      const tushar = existingUsers.find((u) => u.id === 'usr-admin-tushar' || u.username === 'tushar');
+      if (tushar) {
+        if (tushar.role !== 'super_admin' || tushar.designation !== 'Founder' || tushar.description !== 'Super Administrator') {
+          tushar.role = 'super_admin';
+          tushar.designation = 'Founder';
+          tushar.description = 'Super Administrator';
+          usersChanged = true;
+          this.pushToSupabase('users', tushar, 'update', 'id', tushar.id);
+        }
+      }
+
+      // Ensure Ayush exists as HR, Core Team Member, Admin
+      let ayush = existingUsers.find((u) => u.id === 'usr-admin-ayush' || u.username === 'ayush');
+      if (!ayush) {
+        const seedUsers = await createSeedUsers();
+        const seedAyush = seedUsers.find((u) => u.username === 'ayush');
+        if (seedAyush) {
+          existingUsers.push(seedAyush);
+          usersChanged = true;
+          this.pushToSupabase('users', seedAyush, 'insert');
+        }
+      } else {
+        if (ayush.role !== 'admin' || ayush.designation !== 'HR' || ayush.description !== 'Core Team Member') {
+          ayush.role = 'admin';
+          ayush.designation = 'HR';
+          ayush.description = 'Core Team Member';
+          usersChanged = true;
+          this.pushToSupabase('users', ayush, 'update', 'id', ayush.id);
+        }
+      }
+
+      // Ensure Bhoomika has designation 'Social Media Manager'
       const bhoomika = existingUsers.find((u) => u.id === 'usr-admin-bhoomika' || u.username === 'bhoomika');
-      if (bhoomika && bhoomika.designation !== 'Social Media Manager') {
+      if (bhoomika && (bhoomika.designation !== 'Social Media Manager' || !bhoomika.description)) {
         bhoomika.designation = 'Social Media Manager';
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(existingUsers));
+        bhoomika.description = 'Core Operations';
+        usersChanged = true;
         this.pushToSupabase('users', bhoomika, 'update', 'id', bhoomika.id);
+      }
+
+      if (usersChanged) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(existingUsers));
         const sessionRaw = localStorage.getItem(STORAGE_KEYS.SESSION);
         if (sessionRaw) {
           try {
             const s = JSON.parse(sessionRaw);
-            if (s.id === bhoomika.id) {
-              s.designation = 'Social Media Manager';
-              localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(s));
+            const fresh = existingUsers.find((u) => u.id === s.id);
+            if (fresh) {
+              localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(fresh));
             }
           } catch (e) {
             // ignore
@@ -478,9 +592,10 @@ class TeamFlowDatabase {
     full_name: string;
     username: string;
     passwordPlain: string;
-    role: 'admin' | 'member';
+    role: UserRole;
     team_id: string;
     designation: string;
+    description?: string;
     avatar_url?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
     const users = this.getUsers();
@@ -497,6 +612,7 @@ class TeamFlowDatabase {
       role: data.role,
       team_id: data.team_id,
       designation: data.designation.trim(),
+      description: data.description?.trim(),
       avatar_url: data.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${data.username}`,
       is_active: true,
       created_at: new Date().toISOString(),
@@ -774,7 +890,7 @@ class TeamFlowDatabase {
     // Strict security check: Only administrators can approve assignments!
     if (status === 'approved') {
       const currentUser = this.getCurrentUser();
-      if (!currentUser || currentUser.role !== 'admin') {
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
         console.warn('Unauthorized: Only administrators can mark an assignment as approved.');
         return false;
       }
@@ -826,10 +942,10 @@ class TeamFlowDatabase {
     this.pushToSupabase('submissions', newSubmission, 'insert');
     this.pushToSupabase('task_assignments', asg, 'update', 'id', asg.id);
 
-    // Notify admins
+    // Notify admins and super_admins
     const submitter = this.getUser(data.user_id);
     const task = this.getTasks().find((t) => t.id === asg.task_id);
-    const admins = this.getUsers().filter((u) => u.role === 'admin' && u.is_active);
+    const admins = this.getUsers().filter((u) => (u.role === 'admin' || u.role === 'super_admin') && u.is_active);
 
     admins.forEach((admin) => {
       this.addNotification({
@@ -862,7 +978,7 @@ class TeamFlowDatabase {
   }): SubmissionReview | null {
     // Strict permission check: Only administrators can approve or review submissions!
     const reviewer = this.getUser(data.reviewed_by);
-    if (!reviewer || reviewer.role !== 'admin') {
+    if (!reviewer || (reviewer.role !== 'admin' && reviewer.role !== 'super_admin')) {
       console.warn('Unauthorized: Only workspace administrators have permission to review or approve submissions.');
       return null;
     }

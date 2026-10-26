@@ -31,7 +31,8 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
   onOpenEditUserPassword,
 }) => {
   const { teams, users, tasks, currentUser, deleteTeam, updateUser } = useApp();
-  const isAdmin = currentUser?.role === 'admin';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isAdmin = currentUser?.role === 'admin' || isSuperAdmin;
 
   const [activeTab, setActiveTab] = useState<'teams' | 'members'>('teams');
 
@@ -203,6 +204,11 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
                           className="w-4 h-4 rounded-full object-cover"
                         />
                         <span>{m.full_name}</span>
+                        {m.role === 'super_admin' && (
+                          <span className="text-[9px] text-amber-700 font-black uppercase flex items-center gap-0.5">
+                            👑 Super Admin
+                          </span>
+                        )}
                         {m.role === 'admin' && (
                           <span className="text-[9px] text-[#FF5601] font-black uppercase">
                             Admin
@@ -263,15 +269,22 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <span
-                          className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            user.role === 'admin'
-                              ? 'bg-[#FF5601]/20 text-[#A63500]'
-                              : 'bg-[#FAE6CE] text-[#4A352D]'
-                          }`}
-                        >
-                          {user.role}
-                        </span>
+                        {user.role === 'super_admin' ? (
+                          <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 inline-flex items-center gap-1 shadow-xs">
+                            <span>👑</span>
+                            <span>Super Admin</span>
+                          </span>
+                        ) : user.role === 'admin' ? (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FF5601]/15 border border-[#FF5601]/30 text-[#A63500] inline-flex items-center gap-1">
+                            <Shield className="w-3 h-3 text-[#FF5601]" />
+                            <span>Admin</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FAE6CE] text-[#4A352D] inline-flex items-center gap-1">
+                            <User className="w-3 h-3 text-[#7A6359]" />
+                            <span>Member</span>
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -286,8 +299,15 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-[#4A352D] font-medium">
-                        {user.designation}
+                      <td className="py-3.5 px-4">
+                        <span className="text-[#2A1812] font-bold block text-xs">
+                          {user.designation}
+                        </span>
+                        {user.description && (
+                          <span className="text-[10px] text-[#7A6359] font-medium block mt-0.5">
+                            {user.description}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -305,27 +325,35 @@ export const TeamsMembersView: React.FC<TeamsMembersViewProps> = ({
                       {isAdmin && (
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => onOpenEditUser(user)}
-                              className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
-                              title="Edit profile & permissions"
-                            >
-                              <Edit2 className="w-3 h-3 text-[#FF5601]" />
-                              <span>Edit Profile</span>
-                            </button>
+                            {user.role === 'super_admin' && !isSuperAdmin ? (
+                              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+                                🔒 Super Admin Protected
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => onOpenEditUser(user)}
+                                  className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Edit profile & permissions"
+                                >
+                                  <Edit2 className="w-3 h-3 text-[#FF5601]" />
+                                  <span>Edit Profile</span>
+                                </button>
 
-                            <button
-                              onClick={() =>
-                                onOpenEditUserPassword
-                                  ? onOpenEditUserPassword(user)
-                                  : onOpenEditUser(user)
-                              }
-                              className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
-                              title="Change password"
-                            >
-                              <Key className="w-3 h-3 text-[#FC9631]" />
-                              <span>Password</span>
-                            </button>
+                                <button
+                                  onClick={() =>
+                                    onOpenEditUserPassword
+                                      ? onOpenEditUserPassword(user)
+                                      : onOpenEditUser(user)
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-[#FAF1E6] hover:bg-[#FAE6CE] text-[#2A1812] text-xs font-bold border border-[#E8D0B7] flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Change password"
+                                >
+                                  <Key className="w-3 h-3 text-[#FC9631]" />
+                                  <span>Password</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       )}

@@ -33,7 +33,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
   const [filterPriority, setFilterPriority] = useState('all');
   const [viewLayout, setViewLayout] = useState<'grid' | 'table'>('grid');
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
   const nowStr = new Date().toISOString().split('T')[0];
 
   const filteredTasks = useMemo(() => {

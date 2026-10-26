@@ -24,7 +24,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   onClose,
 }) => {
   const { tasks, currentUser, reviewSubmission } = useApp();
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
 
   const [decision, setDecision] = useState<ReviewDecision>('approved');
   const [feedback, setFeedback] = useState('');

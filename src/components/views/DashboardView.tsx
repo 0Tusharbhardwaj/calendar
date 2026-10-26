@@ -39,7 +39,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   if (!currentUser) return null;
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
   const nowStr = new Date().toISOString().split('T')[0];
 
   // 1. Calculate Real Admin Metrics

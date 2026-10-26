@@ -21,7 +21,7 @@ export const ApprovalsView: React.FC<ApprovalsViewProps> = ({
   onOpenReview,
 }) => {
   const { tasks, currentUser } = useApp();
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
 
   if (!isAdmin) {
     return (

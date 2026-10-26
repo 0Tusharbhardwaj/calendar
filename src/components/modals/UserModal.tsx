@@ -13,7 +13,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { UserProfile } from '../../types';
+import { UserProfile, UserRole } from '../../types';
 
 interface UserModalProps {
   userToEdit?: UserProfile | null;
@@ -35,9 +35,10 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const [role, setRole] = useState<UserRole>('member');
   const [teamId, setTeamId] = useState('');
   const [designation, setDesignation] = useState('');
+  const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Password editing for existing users
@@ -60,6 +61,7 @@ export const UserModal: React.FC<UserModalProps> = ({
         setRole(userToEdit.role || 'member');
         setTeamId(userToEdit.team_id || teams[0]?.id || 'team-writing');
         setDesignation(userToEdit.designation || '');
+        setDescription(userToEdit.description || '');
         setIsActive(userToEdit.is_active !== false);
         setPassword('');
         setNewPassword('');
@@ -75,6 +77,7 @@ export const UserModal: React.FC<UserModalProps> = ({
         setRole('member');
         setTeamId(teams[0]?.id || 'team-writing');
         setDesignation('');
+        setDescription('');
         setIsActive(true);
         setShowPassword(false);
         setShowNewPassword(false);
@@ -93,11 +96,19 @@ export const UserModal: React.FC<UserModalProps> = ({
   if (!isOpen) return null;
 
   const isSelf = currentUser && userToEdit && currentUser.id === userToEdit.id;
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isTargetSuperAdmin = userToEdit?.role === 'super_admin';
+  const canEditThisUser = isSuperAdmin || !isTargetSuperAdmin;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+
+    if (!canEditThisUser) {
+      setError('Only Super Administrator can modify a Super Admin profile.');
+      return;
+    }
 
     const cleanFullName = fullName.trim();
     const cleanUsername = username.trim().toLowerCase();
@@ -136,6 +147,7 @@ export const UserModal: React.FC<UserModalProps> = ({
           role,
           team_id: teamId || teams[0]?.id || 'team-writing',
           designation: designation.trim() || 'Team Specialist',
+          description: description.trim(),
         });
 
         if (!res.success) {
@@ -151,6 +163,7 @@ export const UserModal: React.FC<UserModalProps> = ({
           role,
           team_id: teamId,
           designation: designation.trim(),
+          description: description.trim(),
           is_active: isActive,
         });
 
@@ -286,19 +299,38 @@ export const UserModal: React.FC<UserModalProps> = ({
             </div>
           </div>
 
+          {/* Protected Super Admin Banner if target is super_admin and currentUser is not super_admin */}
+          {!canEditThisUser && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2">
+              <span className="text-base">👑</span>
+              <span>
+                <strong>Super Administrator Protected:</strong> Only Super Admins (Tushar Bhardwaj) have permissions to reassign or modify this account.
+              </span>
+            </div>
+          )}
+
           {/* Platform Role & Primary Team */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-                Platform Role *
+              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5 flex items-center justify-between">
+                <span>Platform Role *</span>
+                {role === 'super_admin' && (
+                  <span className="text-[10px] text-amber-700 font-extrabold flex items-center gap-0.5">
+                    👑 Super Admin
+                  </span>
+                )}
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'admin' | 'member')}
-                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                disabled={!canEditThisUser}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="member">Team Member</option>
-                <option value="admin">Administrator (Full Access)</option>
+                <option value="admin">Administrator (Assign Roles & Approvals)</option>
+                {isSuperAdmin && (
+                  <option value="super_admin">👑 Super Administrator (Full Control)</option>
+                )}
               </select>
             </div>
 
@@ -308,8 +340,9 @@ export const UserModal: React.FC<UserModalProps> = ({
               </label>
               <select
                 value={teamId}
+                disabled={!canEditThisUser}
                 onChange={(e) => setTeamId(e.target.value)}
-                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601]"
+                className="w-full bg-[#FAE6CE]/20 border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2A1812] focus:outline-none focus:border-[#FF5601] disabled:opacity-60"
               >
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -320,19 +353,36 @@ export const UserModal: React.FC<UserModalProps> = ({
             </div>
           </div>
 
-          {/* Designation / Title */}
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
-              Designation / Role Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
-              placeholder="e.g. Social Media Manager, Video Editor, Graphic Designer"
-              className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors"
-            />
+          {/* Designation & Description */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
+                Designation / Role Title *
+              </label>
+              <input
+                type="text"
+                required
+                disabled={!canEditThisUser}
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                placeholder="e.g. HR, Social Media Manager"
+                className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors disabled:opacity-60"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-[#2A1812] mb-1.5">
+                Role Description / Tagline
+              </label>
+              <input
+                type="text"
+                disabled={!canEditThisUser}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Core Team Member, Lead Admin"
+                className="w-full bg-[#FAE6CE]/20 hover:bg-[#FAE6CE]/40 focus:bg-white border border-[#E8D0B7] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#2A1812] focus:outline-none focus:border-[#FF5601] transition-colors disabled:opacity-60"
+              />
+            </div>
           </div>
 
           {/* New User: Temporary Password */}
@@ -425,7 +475,7 @@ export const UserModal: React.FC<UserModalProps> = ({
 
                   <button
                     type="button"
-                    disabled={!newPassword.trim() || isResettingPass}
+                    disabled={!newPassword.trim() || isResettingPass || !canEditThisUser}
                     onClick={handleQuickPasswordReset}
                     className="px-3.5 py-2 rounded-xl bg-[#2A1812] hover:bg-[#FF5601] text-white text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex-shrink-0"
                     title="Update password immediately without modifying other fields"
@@ -451,7 +501,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !canEditThisUser}
               className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-[#FF5601] to-[#E04800] hover:from-[#E04800] hover:to-[#C83E00] shadow-[0_4px_14px_-2px_rgba(255,86,1,0.35)] transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               {isSaving

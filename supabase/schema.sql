@@ -35,9 +35,10 @@ CREATE TABLE public.users (
     full_name TEXT NOT NULL,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'member')),
+    role TEXT NOT NULL CHECK (role IN ('super_admin', 'admin', 'member')),
     team_id TEXT REFERENCES public.teams(id) ON DELETE SET NULL,
     designation TEXT DEFAULT '',
+    description TEXT DEFAULT '',
     avatar_url TEXT DEFAULT '',
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -185,11 +186,12 @@ INSERT INTO public.teams (id, name, description, color, badge_bg, badge_text, is
 ('team-video', 'Video & Editing', 'Reels, promo videos, long-form tutorials, animations, podcasts', '#FF5601', 'rgba(255, 86, 1, 0.15)', '#A63500', true),
 ('team-others', 'Operations & Research', 'Strategy, distribution, partner outreach, documentation', '#F9CC61', 'rgba(249, 204, 97, 0.25)', '#7A5200', true);
 
--- 2. Insert Initial Admins (Tushar Bhardwaj & Bhoomika Chawla)
+-- 2. Insert Initial Admins (Tushar Bhardwaj, Ayush & Bhoomika Chawla)
 -- Passwords: 'admin123' (SHA-256: 240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9)
-INSERT INTO public.users (id, full_name, username, password_hash, role, team_id, designation, avatar_url, is_active) VALUES
-('usr-admin-tushar', 'Tushar Bhardwaj', 'tushar', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Founder & Lead Administrator', 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf', true),
-('usr-admin-bhoomika', 'Bhoomika Chawla', 'bhoomika', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Social Media Manager', 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc', true);
+INSERT INTO public.users (id, full_name, username, password_hash, role, team_id, designation, description, avatar_url, is_active) VALUES
+('usr-admin-tushar', 'Tushar Bhardwaj', 'tushar', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'super_admin', 'team-others', 'Founder', 'Super Administrator', 'https://api.dicebear.com/7.x/notionists/svg?seed=tushar&backgroundColor=ffdfbf', true),
+('usr-admin-ayush', 'Ayush', 'ayush', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'HR', 'Core Team Member', 'https://api.dicebear.com/7.x/notionists/svg?seed=ayush&backgroundColor=c0aede', true),
+('usr-admin-bhoomika', 'Bhoomika Chawla', 'bhoomika', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', 'team-others', 'Social Media Manager', 'Core Operations', 'https://api.dicebear.com/7.x/notionists/svg?seed=bhoomika&backgroundColor=ffd5dc', true);
 
 -- 3. Initial Welcome Notification
 INSERT INTO public.app_notifications (id, user_id, title, message, type, is_read) VALUES

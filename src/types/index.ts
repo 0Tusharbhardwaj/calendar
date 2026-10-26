@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'super_admin' | 'admin' | 'member';
 
 export interface UserProfile {
   id: string;
@@ -8,6 +8,7 @@ export interface UserProfile {
   role: UserRole;
   team_id: string;
   designation: string;
+  description?: string;
   avatar_url: string;
   is_active: boolean;
   created_at: string;
