@@ -21,7 +21,7 @@ export const LoginPage: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    const res = await login(username.trim(), password);
+    const res = await login(username.trim().toLowerCase(), password);
     setIsLoading(false);
 
     if (!res.success) {
@@ -81,9 +81,12 @@ export const LoginPage: React.FC = () => {
                   type="text"
                   required
                   autoFocus
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={username}
                   onChange={(e) => {
-                    setUsername(e.target.value);
+                    setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''));
                     setError('');
                   }}
                   placeholder="Enter your username"

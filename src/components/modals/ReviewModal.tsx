@@ -42,7 +42,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           </div>
           <h3 className="font-black text-base text-[#2A1812]">Administrator Approval Required</h3>
           <p className="text-xs text-[#7A6359] leading-relaxed">
-            Only workspace administrators (Tushar Bhardwaj & Bhoomika Chawla) have authority to grant official approval or request revisions on work deliverables.
+            Only workspace administrators have authority to grant official approval or request revisions on work deliverables.
           </p>
           <button
             onClick={onClose}

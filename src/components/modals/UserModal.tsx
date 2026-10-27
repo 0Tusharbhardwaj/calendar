@@ -52,7 +52,9 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronize state when modal opens or userToEdit changes
+  const editingUserId = userToEdit?.id;
+
+  // Synchronize state when modal opens or target user changes
   useEffect(() => {
     if (isOpen) {
       if (userToEdit) {
@@ -91,7 +93,7 @@ export const UserModal: React.FC<UserModalProps> = ({
         }, 150);
       }
     }
-  }, [isOpen, userToEdit, teams, initialFocusPassword]);
+  }, [isOpen, editingUserId]);
 
   if (!isOpen) return null;
 
@@ -248,7 +250,11 @@ export const UserModal: React.FC<UserModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} autoComplete="off" className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Anti-autofill decoys to prevent aggressive browser password managers from pre-filling fields */}
+          <input type="text" name="fake_user_remember" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+          <input type="password" name="fake_pass_remember" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+
           {error && (
             <div className="p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-600" />
@@ -272,6 +278,8 @@ export const UserModal: React.FC<UserModalProps> = ({
               <input
                 type="text"
                 required
+                name="new_member_full_name"
+                autoComplete="off"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. John Doe"
@@ -290,6 +298,11 @@ export const UserModal: React.FC<UserModalProps> = ({
                 <input
                   type="text"
                   required
+                  name="new_member_username"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                   placeholder="username"
@@ -304,7 +317,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2">
               <span className="text-base">👑</span>
               <span>
-                <strong>Super Administrator Protected:</strong> Only Super Admins (Tushar Bhardwaj) have permissions to reassign or modify this account.
+                <strong>Super Administrator Protected:</strong> Only Super Administrators have permissions to reassign or modify this account.
               </span>
             </div>
           )}
@@ -362,6 +375,8 @@ export const UserModal: React.FC<UserModalProps> = ({
               <input
                 type="text"
                 required
+                name="new_member_designation"
+                autoComplete="off"
                 disabled={!canEditThisUser}
                 value={designation}
                 onChange={(e) => setDesignation(e.target.value)}
@@ -376,6 +391,8 @@ export const UserModal: React.FC<UserModalProps> = ({
               </label>
               <input
                 type="text"
+                name="new_member_description"
+                autoComplete="off"
                 disabled={!canEditThisUser}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -396,6 +413,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  name="new_member_password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Temporary login password"
@@ -455,6 +474,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                     <input
                       ref={passwordInputRef}
                       type={showNewPassword ? 'text' : 'password'}
+                      name="member_password_reset"
+                      autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => {
                         setNewPassword(e.target.value);

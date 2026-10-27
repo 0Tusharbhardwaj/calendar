@@ -262,47 +262,34 @@ class TeamFlowDatabase {
         localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teamsRes.data));
       }
       if (usersRes.data && usersRes.data.length > 0) {
-        // Guarantee Tushar is super_admin and Ayush is admin/HR
-        const mappedUsers = usersRes.data.map((u: UserProfile) => {
-          if (u.username === 'tushar' || u.id === 'usr-admin-tushar') {
-            return {
-              ...u,
-              role: 'super_admin' as const,
-              designation: u.designation || 'Founder',
-              description: u.description || 'Super Administrator',
-            };
-          }
-          if (u.username === 'ayush' || u.id === 'usr-admin-ayush') {
-            return {
-              ...u,
-              role: 'admin' as const,
-              designation: u.designation || 'HR',
-              description: u.description || 'Core Team Member',
-            };
-          }
-          return u;
+        const localUsers = this.getUsers();
+        const remoteIds = new Set(usersRes.data.map((u: any) => u.id));
+
+        // 1. Map remote users, preserving any local description or super_admin status
+        const mergedUsers: UserProfile[] = usersRes.data.map((u: UserProfile) => {
+          const localMatch = localUsers.find(
+            (lu) => lu.id === u.id || lu.username.toLowerCase() === u.username.toLowerCase()
+          );
+          const isTushar = u.username.toLowerCase() === 'tushar' || u.id === 'usr-admin-tushar';
+          const isAyush = u.username.toLowerCase() === 'ayush' || u.id === 'usr-admin-ayush';
+
+          return {
+            ...u,
+            role: isTushar ? ('super_admin' as const) : localMatch?.role === 'super_admin' ? ('super_admin' as const) : u.role,
+            designation: u.designation || localMatch?.designation || (isTushar ? 'Founder' : isAyush ? 'HR' : ''),
+            description: localMatch?.description || u.description || (isTushar ? 'Super Administrator' : isAyush ? 'Core Team Member' : ''),
+          };
         });
 
-        // Ensure Ayush is present if not in Supabase yet
-        if (!mappedUsers.some((u: UserProfile) => u.username === 'ayush' || u.id === 'usr-admin-ayush')) {
-          const adminHash = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
-          mappedUsers.push({
-            id: 'usr-admin-ayush',
-            full_name: 'Ayush',
-            username: 'ayush',
-            password_hash: adminHash,
-            role: 'admin',
-            team_id: 'team-others',
-            designation: 'HR',
-            description: 'Core Team Member',
-            avatar_url: 'https://api.dicebear.com/7.x/notionists/svg?seed=ayush&backgroundColor=c0aede',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        }
+        // 2. Include any local users that are not yet in Supabase, and push them to Supabase so they are never lost
+        localUsers.forEach((lu) => {
+          if (!remoteIds.has(lu.id) && !mergedUsers.some((mu) => mu.username.toLowerCase() === lu.username.toLowerCase())) {
+            mergedUsers.push(lu);
+            this.pushToSupabase('users', lu, 'insert');
+          }
+        });
 
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mappedUsers));
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mergedUsers));
       }
       if (tasksRes.data) {
         localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasksRes.data));
@@ -341,36 +328,50 @@ class TeamFlowDatabase {
   ) {
     if (!isSupabaseConfigured || !supabase) return;
     try {
-      if (action === 'insert') {
-        const { error } = await (supabase as any).from(table).insert(payload);
-        if (error) {
-          // Fallback if Postgres table users check constraint hasn't been altered yet
-          if (table === 'users' && payload.role === 'super_admin' && (error.code === '23514' || error.message?.includes('users_role_check'))) {
-            console.warn('Supabase check constraint fallback for super_admin -> admin in cloud DB');
-            await (supabase as any).from(table).insert({ ...payload, role: 'admin' });
-          } else {
-            console.warn(`Supabase insert error on ${table}:`, error.message);
-          }
-        }
-      } else if (action === 'update') {
-        const { error } = await (supabase as any)
-          .from(table)
-          .update(payload)
-          .eq(matchColumn, matchValue ?? payload[matchColumn]);
-        if (error) {
-          if (table === 'users' && payload.role === 'super_admin' && (error.code === '23514' || error.message?.includes('users_role_check'))) {
-            console.warn('Supabase check constraint fallback for super_admin -> admin in cloud DB');
-            await (supabase as any)
-              .from(table)
-              .update({ ...payload, role: 'admin' })
-              .eq(matchColumn, matchValue ?? payload[matchColumn]);
-          } else {
-            console.warn(`Supabase update error on ${table}:`, error.message);
-          }
-        }
-      } else if (action === 'delete') {
-        const { error } = await (supabase as any).from(table).delete().eq(matchColumn, matchValue);
+      if (action === 'delete') {
+        const targetVal = matchValue ?? payload[matchColumn];
+        const { error } = await (supabase as any).from(table).delete().eq(matchColumn, targetVal);
         if (error) console.warn(`Supabase delete error on ${table}:`, error.message);
+        return;
+      }
+
+      let cleanPayload = { ...payload };
+      if (table === 'users' && cleanPayload.role === 'super_admin') {
+        cleanPayload.role = 'admin';
+      }
+
+      const runPush = async (p: any) => {
+        if (action === 'insert') {
+          return await (supabase as any).from(table).insert(p);
+        } else {
+          return await (supabase as any)
+            .from(table)
+            .update(p)
+            .eq(matchColumn, matchValue ?? p[matchColumn]);
+        }
+      };
+
+      let { error } = await runPush(cleanPayload);
+
+      // If description column does not exist in Supabase users table, strip description and retry
+      if (error && table === 'users' && (error.code === 'PGRST204' || error.message?.includes('description'))) {
+        console.warn('Supabase users table missing description column; retrying without description...');
+        const { description, ...withoutDesc } = cleanPayload;
+        const retryRes = await runPush(withoutDesc);
+        error = retryRes.error;
+      }
+
+      // If super_admin check constraint triggers, fallback to admin
+      if (error && table === 'users' && (error.code === '23514' || error.message?.includes('users_role_check'))) {
+        console.warn('Supabase check constraint fallback for super_admin -> admin');
+        const fallbackPayload = { ...cleanPayload, role: 'admin' };
+        const { description, ...withoutDesc } = fallbackPayload;
+        const retryRes = await runPush(withoutDesc);
+        error = retryRes.error;
+      }
+
+      if (error) {
+        console.warn(`Supabase ${action} error on ${table}:`, error.message);
       }
     } catch (err) {
       console.warn(`Supabase ${action} failed on ${table}:`, err);
@@ -490,8 +491,17 @@ class TeamFlowDatabase {
   }
 
   public async login(username: string, passwordPlain: string): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
-    const users = this.getUsers();
-    const user = users.find((u) => u.username.toLowerCase() === username.trim().toLowerCase());
+    let users = this.getUsers();
+    const cleanUsername = username.trim().toLowerCase();
+    let user = users.find((u) => u.username.toLowerCase() === cleanUsername);
+
+    // If not found in local cache, pull fresh from Supabase to support cross-device login
+    if (!user && isSupabaseConfigured && supabase) {
+      await this.pullFromSupabase();
+      users = this.getUsers();
+      user = users.find((u) => u.username.toLowerCase() === cleanUsername);
+    }
+
     if (!user) {
       return { success: false, error: 'User does not exist.' };
     }
@@ -621,7 +631,7 @@ class TeamFlowDatabase {
 
     users.push(newUser);
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    this.pushToSupabase('users', newUser, 'insert');
+    await this.pushToSupabase('users', newUser, 'insert');
 
     const currentUser = this.getCurrentUser();
     if (currentUser) {
@@ -642,7 +652,7 @@ class TeamFlowDatabase {
       updated_at: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    this.pushToSupabase('users', users[idx], 'update', 'id', id);
+    await this.pushToSupabase('users', users[idx], 'update', 'id', id);
 
     // Keep active session in sync if this user is currently logged in
     const currentSessionRaw = localStorage.getItem(STORAGE_KEYS.SESSION);
@@ -659,6 +669,40 @@ class TeamFlowDatabase {
 
     this.notify();
     return users[idx];
+  }
+
+  public async deleteUser(id: string): Promise<boolean> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+      return false;
+    }
+
+    const users = this.getUsers();
+    const targetUser = users.find((u) => u.id === id);
+    if (!targetUser) return false;
+
+    // Super Admin cannot be deleted
+    if (targetUser.role === 'super_admin') {
+      return false;
+    }
+
+    // A user cannot delete themselves
+    if (currentUser.id === id) {
+      return false;
+    }
+
+    // Regular admin cannot delete another admin unless they are super_admin
+    if (targetUser.role === 'admin' && currentUser.role !== 'super_admin') {
+      return false;
+    }
+
+    const filtered = users.filter((u) => u.id !== id);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
+    await this.pushToSupabase('users', { id }, 'delete', 'id', id);
+
+    this.addActivityLog(currentUser, `removed member ${targetUser.full_name} (@${targetUser.username})`, 'user', id);
+    this.notify();
+    return true;
   }
 
   public async resetPassword(userId: string, newPasswordPlain: string): Promise<boolean> {

@@ -54,6 +54,7 @@ interface AppContextType {
   // Users
   createUser: (data: any) => Promise<{ success: boolean; error?: string }>;
   updateUser: (id: string, updates: Partial<UserProfile>) => Promise<UserProfile | null>;
+  deleteUser: (id: string) => Promise<boolean>;
   resetPassword: (userId: string, newPass: string) => Promise<boolean>;
 
   // Calendar Events
@@ -178,7 +179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     decision: ReviewDecision;
     feedback: string;
   }) => {
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
       console.warn('Unauthorized: Only administrators can review and approve submissions.');
       return false;
     }
@@ -213,6 +214,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateUser = async (id: string, updates: Partial<UserProfile>) => {
     return db.updateUser(id, updates);
+  };
+
+  const deleteUser = async (id: string) => {
+    return db.deleteUser(id);
   };
 
   const resetPassword = async (userId: string, newPass: string) => {
@@ -274,6 +279,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteTeam,
         createUser,
         updateUser,
+        deleteUser,
         resetPassword,
         createCalendarEvent,
         updateCalendarEvent,

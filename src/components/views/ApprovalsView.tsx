@@ -34,7 +34,7 @@ export const ApprovalsView: React.FC<ApprovalsViewProps> = ({
             Administrator Approval Required
           </h2>
           <p className="text-xs text-[#7A6359] max-w-md mx-auto leading-relaxed">
-            Reviewing and approving submitted deliverables is strictly reserved for Workspace Administrators (Tushar Bhardwaj & Bhoomika Chawla). As a team specialist, please track your assigned tasks and submit your work URLs from your personal workspace.
+            Reviewing and approving submitted deliverables is strictly reserved for Workspace Administrators. As a team specialist, please track your assigned tasks and submit your work URLs from your personal workspace.
           </p>
         </div>
         <div className="pt-2">
